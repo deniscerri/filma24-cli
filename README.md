@@ -20,6 +20,6 @@ Make sure to change the **download_path** variable on top of the scripts to your
 
 ### Download a certain season
 
-1. `./f24.sh "Name of the tv series" "season number"`
+1. `./f24_series.sh "Name of the tv series" "season number"`
    <br> or
-2. `./f24.sh "Url of the tv series" "season number"`
+2. `./f24_series.sh "Url of the tv series" "season number"`
