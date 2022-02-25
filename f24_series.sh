@@ -19,7 +19,7 @@ parsevidmoly(){
 	
         if [ -z "$mp4" ]
         then
-			if [[ $url_retries -gt 5 ]]
+			if [[ $url_retries -gt 10 ]]
 			then
 				url_retries=0
 				return 1
@@ -130,11 +130,13 @@ parse_embed_referer () {
 				if [ "$filesize" -lt 50000000 ]
 				then
 					echo "The Downloading video file was broken."
+					parsevidmoly
 					continue
 				else
 					return 0
 				fi
 			else
+				parsevidmoly
 				continue
 			fi
 
