@@ -20,7 +20,7 @@ parsevidmoly(){
 	
         if [ -z "$mp4" ]
         then
-			if [[ $url_retries -gt 5 ]]
+			if [[ $url_retries -gt 10 ]]
 			then
 				url_retries=0
 				return 1
