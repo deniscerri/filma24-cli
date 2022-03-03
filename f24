@@ -1,30 +1,51 @@
 #!/bin/bash
 
 user_agent="Chrome/97"
-download_path="/home/$USER"
+root_path="$HOME"
 base_url="https://www.filma24.bz"
 newline=$'\n'
 file_size=0
 url_retries=0
+season=0
+media_type=''
+
+help_text(){
+	while IFS= read -r line; do
+		echo $line
+	done <<-EOF	
+	Usage:
+		f24 -mf "<Movie Title>" / For Downloading Movies
+		f24 -tf "<Series Title>" / For Downloading TV Series (All Seasons)
+	Options:
+		-h show this page
+		-m sets media type as movie
+		-t sets media type as tv series
+		-f give the Media title or URL for the script to scrape.
+		-s set a particular season to download. By default it downloads all seasons	
+		-o set a custom download path. By default it downloads in your Downloads folder	
+	EOF
+}
+
 
 parsevidmoly(){
         fixedURL=$(echo "$referer" | sed 's/embed-//g')
-        videoID=$(echo "$fixedURL" | sed 's/https:\/\/vidmoly.net\///g' | sed 's/https:\/\/vidmoly.net\///g' | sed 's/.html//g')
+        videoID=$(echo "$fixedURL" | sed 's/https:\/\/vidmoly.net\///g' | sed 's/https:\/\/vidmoly.to\///g' | sed 's/.html//g')
 
         videoHash=$(curl -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=&hash=" |
  grep -o -E 'name="hash" value=".*"' | grep -o -P 'value="\K[^"]*')
-
+		
         page_with_mp4=$(curl -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=n&hash=$videoHash")
         mp4=$(echo "$page_with_mp4" | grep -o -E '*https://.*([^"])*.mp4' | head -1)
 	
         if [ -z "$mp4" ]
-        then
+		then
 			if [[ $url_retries -gt 10 ]]
 			then
 				url_retries=0
 				return 1
 			else
 				timeout=$(echo $page_with_mp4 | grep -o -E '*<b class="err">You have to wait[^"<b]*' | tr -dc '0-9')
+				echo $timeout	
 				if [ ! -z "$timeout" ]
 						then
 								echo "Timeout found. Waiting $timeout seconds"
@@ -34,25 +55,24 @@ parsevidmoly(){
 				parsevidmoly
 			fi
 		else
-        	download $referer $mp4
+				download $referer $mp4
 		fi
 }
 
 download () {
-	
 	if [ -z "$2" ]
 	then
-		echo "Couldn't find a suitable stream for the selected episode! :("
+		echo "Couldn't find a suitable stream! :("
 		return
 	fi
-	echo "Downloading from $1 with video url $2"
+	echo "Starting Download from Host $1..."
 	if [[ $2 == *"m3u"* ]]
 	then
 	       	
-		ffmpeg -http_persistent 0 -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i $2 -c copy "$episode_output_path" || true
+		ffmpeg -http_persistent 0 -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i $2 -c copy "$download_path" || true
 		return
 	else
-		wget -q --show-progress --header="Referer: $(echo $1 | tr -d '\n')" "$2" -O "$episode_output_path" || true
+		ffmpeg -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
 	fi
 }
 
@@ -80,16 +100,17 @@ pick_mp4 () {
 	fi
 }
 
+
 get_video_link () {
-	
-	mp4="$(curl --user-agent "$user_agent" -s "$1" | grep -o -E '.*//.*([^"]*v.mp4")' | grep -o '[^{,"]\+"' | sed 's/"//g' | grep -o -E 'http.*' | head -1)"
-		
-	#Checking if the referer contains a m3u file instead of a mp4 file
+	mp4=$(curl --connect-timeout 10 --user-agent "$user_agent" -s "$1" | grep -o -E '*https://.*([^"]*.m3u8.*)' | sed "s/\",\"/\n/g;s/\"//g;s/'//g;s/',//g" | head -n 1)
+	#Checking if the referer contains a mp4 file instead of a m3u file
 	if [ -z "$mp4" ]
 	then	
-		mp4="$(curl --user-agent "$user_agent" -s "$1" | grep -o -E '*https://.*([^"]*.m3u8")' | sed 's/"//g' | head -n 1)"
+		mp4="$(curl --connect-timeout 10 --user-agent "$user_agent" -s "$1" | grep -o -E '*https://.*([^"]*v.mp4.*)' | grep -o '[^{,"]\+"' | sed 's/"//g' | sed "s/'//g" | grep -o -E 'http.*' | head -1)"	
 	fi
 	
+	echo $1
+	echo $mp4
 }
 
 parse_embed_referer () {
@@ -99,51 +120,47 @@ parse_embed_referer () {
 	do
 		
 		server="$1?server=$i"	
-		referer="$(curl --user-agent "$user_agent" -s $server | grep -o -E '*<p><iframe.*' | tr -d '"' | grep -o -P 'src=\K[^ ]*' | xargs echo -n)"
-		
+	
+		referer="$(curl --user-agent "$user_agent" -s $server | grep -o -E '*<p><iframe.*' | tr -d '"' | grep -o -P 'src=\K[^ ]*' | xargs echo -n)"		
 		if [ -z "$referer" ]
 		then
 			continue
 		fi
-			
+		
 		check_http $referer
-
-		season_nr=$(echo "$episode_label" | grep -o -P 'Sezoni \K[^ ]*')
-		episode_nr=$(echo "$episode_label" | grep -o -P 'Episodi \K[^"]*' | tr -d " (I FUNDIT)")
-
-		episode_output_path="$download_path/$result_title/$series_title - S${season_nr}E${episode_nr}.mkv"
-
-		if [ -f "/$episode_output_path" ]
+			
+		if [ -z "$result_title" ]
 		then
-			echo "It Already Exists."
-			return
+			result_title=$(curl --user-agent "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | tr -d '</h2>')								fix_title
 		fi
 		
+		
+		if [[ $media_type == "series" ]]
+		then
+			season_nr=$(echo "$episode_label" | grep -o -P 'Sezoni \K[^ ]*')
+			episode_nr=$(echo "$episode_label" | grep -o -P 'Episodi \K[^"]*' | tr -d " (I FUNDIT)")
+			download_path="$root_path/$result_title/$result_title - S${season_nr}E${episode_nr}.mkv"
+			
+			if [ -f "/$download_path" ]
+			then
+				echo "Episode Already Exists."
+				return
+			fi
+		
+		else	
+			download_path="$root_path/$result_title.mkv"
+		fi		
+
 		
 		
 		if [[ $referer == *"vidmoly"* ]]
 		then
-			
-			if [[ -f "$episode_output_path" ]]
-			then
-				filesize=$(wc -c "$episode_output_path" | awk '{print $1}' | tr -dc '0-9')
-				if [ "$filesize" -lt 50000000 ]
-				then
-					echo "The Downloading video file was broken."
-					parsevidmoly
-					continue
-				else
-					return 0
-				fi
-			else
-				parsevidmoly
-				continue
-			fi
-
+			parsevidmoly
+			continue
 		fi		
-
+		
 		get_video_link $referer
-
+		
 		if [[ $mp4 == *"m3u"* ]]
 		then
 			download $referer $mp4
@@ -153,7 +170,7 @@ parse_embed_referer () {
 		pick_mp4 $referer $mp4
 	done
 	
-        if [[ -f "$episode_output_path" ]]
+        if [[ -f "$download_path" ]]
 	then
 		return 0
 	else
@@ -173,22 +190,18 @@ parse_seasons () {
 	then
 		result_title=$(curl --user-agent "$user_agent" -s "$1" | tr -d "\n" | grep -o -E '<div class="category-head">[[:space:]].*<h3>([^"]*)</h3>' | grep -o -P '<h3>\K[^"]*' | tr -d '</h3>')
 		fix_title
-		series_title=$result_title
 	fi
-
 	echo "Creating Series Folder"
-	mkdir "$download_path/$result_title" || echo "Series Folder already exists. Continuing..."
-
-
-	season=$2
-	if [ -z "$season" ]
-	then
-		season=0
-	fi
-
+	mkdir -p "$root_path/$result_title"
 	if [ $season -gt 0 ]
 	then
 		episode_list=$(echo "$episode_list" | grep -o -E ".*Sezoni $season.*")
+	fi
+		
+	if [ -z "$episode_list" ]
+	then
+		echo "Season not Found! :("
+		exit 1
 	fi
 
 	
@@ -209,7 +222,7 @@ fix_title(){
 
 
 search () {
-	url_title=$(curl --user-agent "$user_agent" -s "$base_url/search/$1" | tr -d '\n' | grep -o -E  '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"\S')
+	url_title=$(curl --user-agent "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E  '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"\S')
 	if [ -z "$url_title" ]
 	then
 		echo "Media $title was not found! :("
@@ -220,18 +233,27 @@ search () {
 
 		
 	result_url=$(echo "$line" | grep -o -E 'https.*/')
-	if [[ $result_url != *serial* ]]
+	if [[ $result_url == *serial* ]]
 	then
-		continue
+		if [[ $media_type == "movie" ]]
+		then
+			continue
+		fi
 	fi
 
 	#Extracts text that is inside the title tag.
 	#Sed removes the space left out in the end
 	result_title=$(echo "$line" | grep -o -P 'title="\K[^"]*')
-	fix_title	
+	fix_title
+	
 	if [[ $result_title == *"$input_text"* ]]
 	then	
-		parse_seasons "$result_url" "$season"
+		if [[ $media_type == "movie" ]]
+		then
+			parse_embed_referer $result_url
+		else
+			parse_seasons $result_url
+		fi
 		exit 0
 	fi
 	index=$index+1
@@ -240,14 +262,65 @@ search () {
 
 }
 
+while getopts 'mthps:f:o:' OPT; do
+	case $OPT in
+		h)
+			help_text
+			exit 0
+			;;
+		m)
+			media_type="movie"
+			;;
+		t)
+			media_type="series"
+			;;
+		p)
+			play_it=1
+			;;
+		f)
+			query=$OPTARG
+			;;
+		s)
+			season=$OPTARG
+			;;
+		o)
+			root_path=$OPTARG
+			;;
+		*)
+			help_text
+			exit 1
+			;;
+	esac
+done
 
+if [ $# -eq 0 ]
+then
+	help_text
+	exit 0
+fi
 
-query=$1
-season=$2
+if [ -z "$media_type" ]
+then
+	echo "You need to provide the media type! $newline"
+	help_text
+	exit 1
+fi
+
+if [ -z "$query" ]
+then
+	echo "You need to provide the name of the media! $newline"
+	help_text
+	exit 1
+fi
+
 if [[ $query == *"http"* ]]
 then
-	parse_seasons "$query" "$season"
+	if [ "$media_type" = "movie" ]
+	then
+		parse_embed_referer
+	else
+		parse_seasons
+	fi
 else
-	series_title=$query
-	search "$query"
+	search
 fi

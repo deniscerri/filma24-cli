@@ -1,25 +1,32 @@
-# **Filma24-CLI** - Download movies and tv series from filma24 using the command line.
+# **Filma24-CLI** - Download Albanian Movies and TV Series through filma24 using the terminal.
 
-## Config:
+## Installing:
 
-Make sure to change the **download_path** variable on top of the scripts to your desired path. By default it downloads in your home directory
+`git clone https://github.com/deniscerri/filma24-cli && cd filma24-cli` <br>
+`sudo cp f24 /usr/local/bin/f24`
 
 ## Usage:
 
 ### Download a movie
 
-1. `./f24.sh "Name of the movie"`
-   <br> or
-2. `./f24.sh "Url of the movie"`
+      f24 -m -f [Movie Title or URL]
 
-### Download the whole series
+### Download series
 
-1. `./f24_series.sh "Name of the tv series"`
-   <br> or
-2. `./f24_series.sh "Url of tv the series"`
+      f24 -t -f [Series Title or URL]
 
-### Download a certain season
+### Options
 
-1. `./f24_series.sh "Name of the tv series" "season number"`
-   <br> or
-2. `./f24_series.sh "Url of the tv series" "season number"`
+      -h show help page
+      -m sets media type as movie
+      -t sets media type as tv series
+      -f give the Media title or URL for the script to scrape.
+      -s set a particular season to download. By default it downloads all seasons
+      -o set a custom download path. By default it downloads in your Downloads folder
+
+## Disclaimer:
+
+This script was made to make it easier to download movies and tv series through web scraping instead of doing so manually. Every content that is being downloaded is hosted by third parties, as mentioned in the webpage that is used for scraping. <br>
+Use it at your own risk. Make sure to look up your country's laws before proceeding. <br>
+<br>
+Any Copyright Infridgement should be directed towards the scraped website or hosts inside it.
