@@ -9,20 +9,25 @@
 
 ### Download a movie
 
-      f24 -m -f [Movie Title or URL]
+      f24 -m [Movie Title or URL]
 
 ### Download series
 
-      f24 -t -f [Series Title or URL]
+      f24 -t [Series Title or URL]
+
+### Using a List
+
+You can use a txt file filled with names or url's and use that as input. The script will go over all of them.
+
+- If you add a custom season, the script will download the same season number for all elements on the list.
 
 ### Options
 
       -h show help page
       -m sets media type as movie
       -t sets media type as tv series
-      -f give the Media title or URL for the script to scrape.
       -s set a particular season to download. By default it downloads all seasons
-      -o set a custom download path. By default it downloads in your Downloads folder
+      -o set a custom download path. By default it downloads in your Home folder
 
 ## Disclaimer:
 

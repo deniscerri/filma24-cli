@@ -141,9 +141,9 @@ parse_embed_referer () {
 			episode_nr=$(echo "$episode_label" | grep -o -P 'Episodi \K[^"]*' | tr -d " (I FUNDIT)")
 			download_path="$root_path/$result_title/$result_title - S${season_nr}E${episode_nr}.mkv"
 			
-			if [ -f "/$download_path" ]
+			if [ -f "$download_path" ]
 			then
-				echo "Episode Already Exists."
+				echo "Episode Exists."
 				return
 			fi
 		
@@ -155,6 +155,7 @@ parse_embed_referer () {
 		
 		if [[ $referer == *"vidmoly"* ]]
 		then
+			echo $referer
 			parsevidmoly
 			continue
 		fi		
@@ -183,7 +184,7 @@ parse_seasons () {
 	if [ -z "$episode_list" ]
 	then
 		echo "Series $query not found! :("
-		exit 1
+		return
 	fi
 	#If user input was an url, result_title was never initiated
 	if [ -z "$result_title" ]
@@ -201,7 +202,7 @@ parse_seasons () {
 	if [ -z "$episode_list" ]
 	then
 		echo "Season not Found! :("
-		exit 1
+		return
 	fi
 
 	
@@ -226,7 +227,7 @@ search () {
 	if [ -z "$url_title" ]
 	then
 		echo "Media $title was not found! :("
-		exit 1
+		return
 	fi
 
 	echo "$url_title" | while IFS= read -r line ; do
@@ -251,10 +252,11 @@ search () {
 		if [[ $media_type == "movie" ]]
 		then
 			parse_embed_referer $result_url
+			return
 		else
 			parse_seasons $result_url
+			return
 		fi
-		exit 0
 	fi
 	index=$index+1
 	done
@@ -262,7 +264,7 @@ search () {
 
 }
 
-while getopts 'mthps:f:o:' OPT; do
+while getopts 'm:t:hs:o:' OPT; do
 	case $OPT in
 		h)
 			help_text
@@ -270,14 +272,10 @@ while getopts 'mthps:f:o:' OPT; do
 			;;
 		m)
 			media_type="movie"
+			query=$OPTARG
 			;;
 		t)
 			media_type="series"
-			;;
-		p)
-			play_it=1
-			;;
-		f)
 			query=$OPTARG
 			;;
 		s)
@@ -302,25 +300,46 @@ fi
 if [ -z "$media_type" ]
 then
 	echo "You need to provide the media type! $newline"
-	help_text
 	exit 1
 fi
 
 if [ -z "$query" ]
 then
-	echo "You need to provide the name of the media! $newline"
-	help_text
+	echo "You need to provide a query! $newline"
 	exit 1
 fi
 
-if [[ $query == *"http"* ]]
-then
-	if [ "$media_type" = "movie" ]
+init_start(){
+	if [[ $query == *"http"* ]]
 	then
-		parse_embed_referer
+		if [ "$media_type" = "movie" ]
+		then
+			parse_embed_referer
+		else
+			parse_seasons
+		fi
 	else
-		parse_seasons
+		search
 	fi
+}
+
+
+if [[ $query == *.txt ]]
+then
+	txt_file=$query
+	if ! [ -f "$query" ]
+	then
+		echo "Txt file could not be found!"
+		exit 1
+	fi
+
+	while IFS= read -r line
+	do
+		query=$line
+		echo "Searching for $query ..."
+		init_start
+	done < "$txt_file"
 else
-	search
+	init_start
 fi
+
