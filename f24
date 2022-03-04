@@ -14,15 +14,15 @@ help_text(){
 		echo $line
 	done <<-EOF	
 	Usage:
-		f24 -mf "<Movie Title>" / For Downloading Movies
-		f24 -tf "<Series Title>" / For Downloading TV Series (All Seasons)
+		f24 -m [Movie Title or URL]
+		f24 -t [Series Title or URL]
 	Options:
 		-h show this page
 		-m sets media type as movie
 		-t sets media type as tv series
-		-f give the Media title or URL for the script to scrape.
 		-s set a particular season to download. By default it downloads all seasons	
-		-o set a custom download path. By default it downloads in your Downloads folder	
+		-o set a custom download path. By default it downloads in your Downloads folder
+		You can Also use .txt files containing lists of titles or url's as input
 	EOF
 }
 
