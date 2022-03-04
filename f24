@@ -143,12 +143,18 @@ parse_embed_referer () {
 			
 			if [ -f "$download_path" ]
 			then
-				echo "Episode Exists."
+				echo "Episode is Downloaded."
 				return
 			fi
 		
 		else	
 			download_path="$root_path/$result_title.mkv"
+			
+			if [ -f "$download_path" ]
+			then
+				echo "Movie is Downloaded."
+				return
+			fi
 		fi		
 
 		
