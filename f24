@@ -320,9 +320,9 @@ init_start(){
 	then
 		if [ "$media_type" = "movie" ]
 		then
-			parse_embed_referer
+			parse_embed_referer $query
 		else
-			parse_seasons
+			parse_seasons $query
 		fi
 	else
 		search
