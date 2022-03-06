@@ -45,7 +45,7 @@ parsevidmoly(){
 				return 1
 			else
 				timeout=$(echo $page_with_mp4 | grep -o -E '*<b class="err">You have to wait[^"<b]*' | tr -dc '0-9')
-				echo $timeout	
+				
 				if [ ! -z "$timeout" ]
 						then
 								echo "Timeout found. Waiting $timeout seconds"
