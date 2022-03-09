@@ -91,7 +91,7 @@ check_http () {
 }
 
 pick_mp4 () {
-	size_tmp=$(curl --referer $1 -s -I $2 2> /dev/null | grep -i "content-length:" | tr -d "Content\-Length:\t" | tr -dc '0-9')
+	size_tmp=$(ffprobe -headers "Referer: $1" -i "$2" -show_entries format=size -v quiet -of csv="p=0" | tr -dc '0-9')
 	if (( size_tmp > file_size ));
 	then	
 		file_size=$size_tmp
