@@ -294,13 +294,13 @@ search () {
 
 parse_title(){
 	result_url=$(echo "$1" | grep -o -E 'https.*/')
-	echo $result_url
-	if [[ $result_url == *serial* ]]
+	
+	if [[ $result_url == *serial* ]] && [[ $media_type == "movie" ]]
 	then
-		if [[ $media_type == "movie" ]]
-		then
-			return
-		fi
+		return
+	elif [[ ! $result_url == *serial* ]] && [[ $media_type == "series" ]]
+	then
+		return
 	fi
 
 	#Extracts text that is inside the title tag.
