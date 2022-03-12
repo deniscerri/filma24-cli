@@ -239,6 +239,7 @@ fix_title(){
 
 
 search () {
+	query=$(echo "$query" | sed -e 's/ /%20/g')
 	url_title=$(curl --user-agent "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E  '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"\S')
 	if [ -z "$url_title" ]
 	then
