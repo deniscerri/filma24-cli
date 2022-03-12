@@ -341,7 +341,7 @@ while getopts 'm:t:his:o:' OPT; do
 			;;
 		o)
 			root_path=$OPTARG
-			if ! [ -d "$rootpath" ]
+			if ! [ -d "$root_path" ]
 			then
 				echo "Given Directory does not exist!"
 				exit 1
