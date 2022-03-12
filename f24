@@ -111,7 +111,7 @@ pick_mp4 () {
 
 
 get_video_link () {
-	mp4=$(curl --connect-timeout 10 --user-agent "$user_agent" -s "$1" | grep -o -E '*https://.*([^"]*.m3u8.*)' | sed "s/\",\"/\n/g;s/\"//g;s/'//g;s/',//g" | head -n 1)
+	mp4=$(curl --connect-timeout 10 --user-agent "$user_agent" -s "$1" | grep -o -E '*https://.*([^"]*.m3u8.*)' | sed "s/\",\"/\n/g;s/\"//g;s/'//g;s/',//g;s/m3u8,/m3u8/g" | head -n 1)
 	#Checking if the referer contains a mp4 file instead of a m3u file
 	if [ -z "$mp4" ]
 	then	
