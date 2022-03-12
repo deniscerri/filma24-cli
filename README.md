@@ -22,12 +22,12 @@ You can use a txt file filled with names or url's and use that as input. The scr
 - If you add a custom season, the script will download the same season number for all elements on the list.
 
 ### Options
-
-      -h show help page
+      -h show this page
       -m sets media type as movie
       -t sets media type as tv series
       -s set a particular season to download. By default it downloads all seasons
-      -o set a custom download path. By default it downloads in your Home folder
+      -o set a custom download path. By default it downloads in your Downloads folder
+      -i use interactive mode when searching, instead of the script picking it itself
 
 ## Disclaimer:
 
