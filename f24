@@ -8,21 +8,25 @@ file_size=0
 url_retries=0
 season=0
 media_type=''
+interactive=0
 
 help_text(){
 	while IFS= read -r line; do
 		echo $line
 	done <<-EOF	
-	Usage:
-		f24 -m [Movie Title or URL]
-		f24 -t [Series Title or URL]
-	Options:
-		-h show this page
-		-m sets media type as movie
-		-t sets media type as tv series
-		-s set a particular season to download. By default it downloads all seasons	
-		-o set a custom download path. By default it downloads in your Downloads folder
-		You can Also use .txt files containing lists of titles or url's as input
+		Usage:
+		    f24 [options] [input title or file]
+		Examples:
+		    f24 -m [Movie Title or URL]
+		    f24 -t [Series Title or URL]
+		Options:
+		   -h show this page
+		   -m sets media type as movie
+		   -t sets media type as tv series
+		   -s set a particular season to download. By default it downloads all seasons
+		   -o set a custom download path. By default it downloads in your Downloads folder
+		   -i use interactive mode when searching, instead of the script picking it itself
+		   You can Also use .txt files containing lists of titles or url's as input
 	EOF
 }
 
@@ -31,9 +35,14 @@ parsevidmoly(){
         fixedURL=$(echo "$referer" | sed 's/embed-//g')
         videoID=$(echo "$fixedURL" | sed 's/https:\/\/vidmoly.net\///g' | sed 's/https:\/\/vidmoly.to\///g' | sed 's/.html//g')
 
-        videoHash=$(curl -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=&hash=" |
+        videoHash=$(curl --connect-timeout 10 -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=&hash=" |
  grep -o -E 'name="hash" value=".*"' | grep -o -P 'value="\K[^"]*')
-		
+	
+	if [ -z "$videoHash" ]
+	then
+		return
+	fi	
+
         page_with_mp4=$(curl -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=n&hash=$videoHash")
         mp4=$(echo "$page_with_mp4" | grep -o -E '*https://.*([^"])*.mp4' | head -1)
 	
@@ -187,6 +196,7 @@ parse_embed_referer () {
 
 parse_seasons () {
 	episode_list=$(curl --user-agent "$user_agent" -s "$1" | tr -d '\n' | grep -o -E '<div class="under-thumb seriale">[[:space:]]*<a href="([^"]*)"><h4>([^"]*)</h4\S' | tac)
+		
 	if [ -z "$episode_list" ]
 	then
 		echo "Series $query not found! :("
@@ -235,11 +245,55 @@ search () {
 		echo "Media $title was not found! :("
 		return
 	fi
-
-	echo "$url_title" | while IFS= read -r line ; do
-
+	
+	if [ $interactive -eq 1 ]
+	then
+		titles=$(echo "$url_title" | grep -o -P 'title="\K[^"]*' | awk '{print NR". "$0}')
+		result_nr=$(echo "$titles" | awk 'END{print NR}')
 		
-	result_url=$(echo "$line" | grep -o -E 'https.*/')
+		if [ $result_nr -eq 1 ]
+		then
+			echo "Only one result found. [$titles]"
+			echo "Continuing..."
+			parse_title "$url_title"
+		else				
+			echo "$titles" | while IFS= read -r line ; do				
+				echo -e "\e[93m$line"
+				read line
+				echo -e "\e[96m$line"
+			done
+			echo -e "\e[39m"
+			printf "Write a number between [1-$result_nr]: "
+			read choice
+			if ! [ $choice -eq $choice 2>/dev/null ]
+			then
+				choice=0
+			fi
+			while [ $choice -lt 1 ] || [ $choice -gt $result_nr ]
+			do				
+
+				printf "Wrong Input. Try Again: "
+				read choice	
+				if ! [ $choice -eq $choice 2>/dev/null ]
+				then
+					choice=0
+				fi
+			done
+			url_title=$(echo "$url_title" | head -n $choice | tail -n 1)
+			parse_title "$url_title"
+		fi
+			
+	else
+		echo "$url_title" | while IFS= read -r line ; do
+			parse_title "$line"
+		done
+	fi
+
+}
+
+parse_title(){
+	result_url=$(echo "$1" | grep -o -E 'https.*/')
+	echo $result_url
 	if [[ $result_url == *serial* ]]
 	then
 		if [[ $media_type == "movie" ]]
@@ -250,7 +304,7 @@ search () {
 
 	#Extracts text that is inside the title tag.
 	#Sed removes the space left out in the end
-	result_title=$(echo "$line" | grep -o -P 'title="\K[^"]*')
+	result_title=$(echo "$1" | grep -o -P 'title="\K[^"]*')
 	fix_title
 	
 	if [[ $result_title == *"$input_text"* ]]
@@ -264,13 +318,10 @@ search () {
 			return
 		fi
 	fi
-	index=$index+1
-	done
-
-
 }
 
-while getopts 'm:t:hs:o:' OPT; do
+
+while getopts 'm:t:his:o:' OPT; do
 	case $OPT in
 		h)
 			help_text
@@ -289,6 +340,14 @@ while getopts 'm:t:hs:o:' OPT; do
 			;;
 		o)
 			root_path=$OPTARG
+			if ! [ -d "$rootpath" ]
+			then
+				echo "Given Directory does not exist!"
+				exit 1
+			fi
+			;;
+		i)
+			interactive=1
 			;;
 		*)
 			help_text
