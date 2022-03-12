@@ -1,9 +1,24 @@
 # **Filma24-CLI** - Download Albanian Movies and TV Series through filma24 using the terminal.
 
-## Installing:
+### Dependencies that need to be installed:
+- ffmpeg
+- curl
+
+## Installation:
+
+### Generic Linux
 
 `git clone https://github.com/deniscerri/filma24-cli && cd filma24-cli` <br>
 `sudo cp f24 /usr/local/bin/f24`
+
+### Android
+
+- Download [Termux](https://f-droid.org/en/packages/com.termux/) <br>
+- Give storage permissions with the command: `termux-setup-storage` <br>
+- Write on the terminal: <br>
+`git clone https://github.com/deniscerri/filma24-cli && cd filma24-cli` <br>
+`cp f24 $PREFIX/bin/f24`
+
 
 ## Usage:
 
@@ -22,7 +37,7 @@ You can use a txt file filled with names or url's and use that as input. The scr
 - If you add a custom season, the script will download the same season number for all elements on the list.
 
 ### Options
-      -h show this page
+      -h show help page
       -m sets media type as movie
       -t sets media type as tv series
       -s set a particular season to download. By default it downloads all seasons
