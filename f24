@@ -299,7 +299,7 @@ parse_title(){
 	then
 		if [[ $media_type == "movie" ]]
 		then
-			continue
+			return
 		fi
 	fi
 
