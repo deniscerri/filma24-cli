@@ -140,7 +140,8 @@ parse_embed_referer () {
 			
 		if [ -z "$result_title" ]
 		then
-			result_title=$(curl --user-agent "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | tr -d '</h2>')								fix_title
+			result_title=$(curl --user-agent "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
+			fix_title
 		fi
 		
 		
@@ -205,7 +206,7 @@ parse_seasons () {
 	#If user input was an url, result_title was never initiated
 	if [ -z "$result_title" ]
 	then
-		result_title=$(curl --user-agent "$user_agent" -s "$1" | tr -d "\n" | grep -o -E '<div class="category-head">[[:space:]].*<h3>([^"]*)</h3>' | grep -o -P '<h3>\K[^"]*' | tr -d '</h3>')
+		result_title=$(curl --user-agent "$user_agent" -s "$1" | tr -d "\n" | grep -o -E '<div class="category-head">[[:space:]].*<h3>([^"]*)</h3>' | grep -o -P '<h3>\K[^"]*' | sed 's/<\/h3>//g')
 		fix_title
 	fi
 	echo "Creating Series Folder"
