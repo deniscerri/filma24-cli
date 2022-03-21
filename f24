@@ -2,7 +2,7 @@
 
 user_agent="Chrome/97"
 root_path="$HOME"
-base_url="https://www.filma24.bz"
+base_url="https://www.filma24.id"
 newline=$'\n'
 file_size=0
 url_retries=0
