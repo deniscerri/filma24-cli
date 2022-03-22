@@ -75,14 +75,10 @@ download () {
 		return
 	fi
 	echo "Starting Download from Host $1..."
-	if [[ $2 == *"m3u"* ]]
-	then
-	       	
-		ffmpeg -http_persistent 0 -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i $2 -c copy "$download_path" || true
-		return
-	else
-		ffmpeg -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
-	fi
+	ffmpeg -http_persistent 0 -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+	
+	chosen_mp4=''
+	chosen_referer=''
 }
 
 check_http () {
@@ -224,8 +220,6 @@ parse_seasons () {
 		episode_url=$(echo "$line" | grep -o -E 'https.*/"' | tr -d "\"")
 
 		echo "Downloading $episode_label"
-		chosen_mp4=''
-		chosen_referer=''
 		parse_embed_referer "$episode_url"
 	done
 
@@ -311,8 +305,6 @@ parse_title(){
 	then	
 		if [[ $media_type == "movie" ]]
 		then
-			chosen_mp4=''
-			chosen_referer=''
 			parse_embed_referer $result_url
 			return
 		else
@@ -381,8 +373,6 @@ init_start(){
 	then
 		if [ "$media_type" = "movie" ]
 		then
-			chosen_mp4=''
-			chosen_referer=''
 			parse_embed_referer $query
 		else
 			parse_seasons $query
