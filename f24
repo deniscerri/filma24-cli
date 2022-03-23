@@ -84,6 +84,7 @@ download () {
 	
 	chosen_mp4=''
 	chosen_referer=''
+	file_size=0
 }
 
 check_http () {
