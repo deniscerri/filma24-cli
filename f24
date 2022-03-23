@@ -75,7 +75,12 @@ download () {
 		return
 	fi
 	echo "Starting Download from Host $1..."
-	ffmpeg -http_persistent 0 -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+	if [[ $2 == *"m3u"* ]]
+	then
+		ffmpeg -http_persistent 0 -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+	else
+		ffmpeg -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+	fi
 	
 	chosen_mp4=''
 	chosen_referer=''
