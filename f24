@@ -139,9 +139,11 @@ parse_embed_referer () {
 		fi
 		
 		check_http $referer
-			
-		result_title=$(curl --user-agent "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
-		fix_title
+		if [[ $query == *"http"* ]]
+		then
+			result_title=$(curl --user-agent "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
+			fix_title
+		fi
 		
 		if [[ $media_type == "series" ]]
 		then
