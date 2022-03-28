@@ -7,7 +7,7 @@ newline=$'\n'
 file_size=0
 url_retries=0
 season=0
-episode=0
+episode=1
 media_type=''
 interactive=0
 watch=0
@@ -240,10 +240,15 @@ parse_embed_referer () {
 server_choice(){
 	server_choice=1
 	parse_embed_referer_watch "$1" $server_choice
+	if [ $season -eq 0 ]
+	then
+		season=1
+	fi
 	while true
 	do	
 		clear
 		nr_of_servers=$(curl --user-agent "$user_agent" -s $1 | grep -o -E '.*<a data-servera=".*' | wc -l | tr -dc '0-9')
+		echo "$Green Playing Peacemaker $Blue S$season-E$episode $White"
 		echo "$Blue Current Server: $server_choice $White"
 		printf "Write Server Number [1-$nr_of_servers] or Quit by writing anything else: "
 		exec 0<&1
@@ -297,14 +302,14 @@ parse_seasons () {
 	
 	if [ $watch -eq 1 ]
 	then
-		if [ -z "$episode" ]
+		if [ $episode -gt 1 ]
 		then
-			chosen_ep=$(echo "$episode_list" | head -n 1)	
+			echo "test"
+			chosen_ep=$(echo "$episode_list" | head -n $episode | tail -1)	
 		else
-			chosen_ep=$(echo "$episode_list" | head -n $episode | tail -1)
+			chosen_ep=$(echo "$episode_list" | head -n 1)
 		fi
-		episode_url=$(echo $chosen_ep | grep -oE 'https.*/"' | tr -d "\"")
-		
+		episode_url=$(echo "$chosen_ep" | grep -oE 'https.*/"' | tr -d "\"")	
 		server_choice $episode_url
 		exit
 	fi	
