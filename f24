@@ -511,4 +511,3 @@ then
 else
 	init_start
 fi
-
