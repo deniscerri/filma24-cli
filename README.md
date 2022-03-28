@@ -34,7 +34,7 @@
 
 Either install WSL (Windows Subsystem for Linux) or Git Bash.
 
-- If you choose WSL, you can use the same command as generic linux to add the program in $Path and get rid of the downloaded copy.
+- If you choose WSL, you can use the same command as generic linux to add the program in $Path and get rid of the downloaded copy. (You can't play movies using WSL, use Git Bash instead)
 - On Git Bash you need to keep the downloaded script somewhere to run it.
 
 ## Usage: <a name="Usage"></a>
