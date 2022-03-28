@@ -35,7 +35,7 @@
 Either install WSL (Windows Subsystem for Linux) or Git Bash.
 
 - If you choose WSL, you can use the same command as generic linux to add the program in $Path and get rid of the downloaded copy. (If you are running WSL1, you can't open VLC. You need to upgrade to WSL2 or use Git Bash)
-- On Git Bash you need to keep the downloaded script somewhere to run it.
+- On Git Bash you need to keep to copy f24 to /usr/bin/ directory instead and you need to run it as an administrator.
 
 ## Usage: <a name="Usage"></a>
 
