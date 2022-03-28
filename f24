@@ -151,7 +151,7 @@ parse_embed_referer_watch() {
 	
 	if [ -z "$referer" ]
 	then
-		continue
+		return
 	fi
 	
 	check_http $referer
