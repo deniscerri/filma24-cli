@@ -248,8 +248,13 @@ server_choice(){
 	do	
 		clear
 		nr_of_servers=$(curl --user-agent "$user_agent" -s $1 | grep -o -E '.*<a data-servera=".*' | wc -l | tr -dc '0-9')
-		echo "$Green Playing Peacemaker $Blue S$season-E$episode $White"
-		echo "$Blue Current Server: $server_choice $White"
+		if [[ "$media_type" == "series" ]]
+		then
+			echo "$Green-Playing $result_title S$season-E$episode $White"
+		else
+			echo "$Green-Playing $result_title"
+		fi
+		echo "$Blue-Current Server: $server_choice $White"
 		printf "Write Server Number [1-$nr_of_servers] or Quit by writing anything else: "
 		exec 0<&1
 		read server_choice	
@@ -304,7 +309,6 @@ parse_seasons () {
 	then
 		if [ $episode -gt 1 ]
 		then
-			echo "test"
 			chosen_ep=$(echo "$episode_list" | head -n $episode | tail -1)	
 		else
 			chosen_ep=$(echo "$episode_list" | head -n 1)
@@ -488,7 +492,15 @@ init_start(){
 	then
 		if [ "$media_type" = "movie" ]
 		then
-			parse_embed_referer $query
+			if [ $watch -eq 1 ]
+			then
+
+				result_title=$(curl --user-agent "$user_agent" -s $query | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
+				fix_title
+				server_choice $query
+			else
+				parse_embed_referer $query
+			fi
 		else
 			parse_seasons $query
 		fi
