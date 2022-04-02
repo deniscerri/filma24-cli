@@ -7,7 +7,7 @@ newline=$'\n'
 file_size=0
 url_retries=0
 season=0
-episode=1
+episode=0
 media_type=''
 interactive=0
 watch=0
@@ -291,7 +291,6 @@ parse_seasons () {
 	then
 		echo "Creating Series Folder"
 		mkdir -p "$root_path/$result_title"
-		episode=0
 	fi
 
 	if [ -z "$episode_list" ]
@@ -313,6 +312,7 @@ parse_seasons () {
 			chosen_ep=$(echo "$episode_list" | head -n $episode | tail -1)	
 		else
 			chosen_ep=$(echo "$episode_list" | head -n 1)
+			episode=1
 		fi
 		episode_url=$(echo "$chosen_ep" | grep -oE 'https.*/"' | tr -d "\"")	
 		server_choice $episode_url
