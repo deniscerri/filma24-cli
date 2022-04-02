@@ -291,6 +291,7 @@ parse_seasons () {
 	then
 		echo "Creating Series Folder"
 		mkdir -p "$root_path/$result_title"
+		episode=0
 	fi
 
 	if [ -z "$episode_list" ]
