@@ -198,7 +198,7 @@ parse_embed_referer () {
 			if [ -f "$download_path" ]
 			then
 				echo "$Green Episode is Downloaded. $White"
-				return
+				return 1
 			fi
 		
 		else	
@@ -207,7 +207,7 @@ parse_embed_referer () {
 			if [ -f "$download_path" ]
 			then
 				echo "$Green Movie is Downloaded. $White"
-				return
+				return 1
 			fi
 		fi		
 		
@@ -231,7 +231,7 @@ parse_embed_referer () {
 	
         if [[ -f "$download_path" ]]
 	then
-		return 0
+		return 1
 	else
 		download $chosen_referer $chosen_mp4
 	fi
@@ -388,6 +388,10 @@ search () {
 	else
 		echo "$url_title" | while IFS= read -r line ; do
 			parse_title "$line"
+			if [ $? -eq 1 ]
+			then
+				break
+			fi
 		done
 	fi
 
@@ -398,10 +402,10 @@ parse_title(){
 	
 	if [[ $result_url == *serial* ]] && [[ $media_type == "movie" ]]
 	then
-		return
+		return 1
 	elif [[ ! $result_url == *serial* ]] && [[ $media_type == "series" ]]
 	then
-		return
+		return 1
 	fi
 
 	#Extracts text that is inside the title tag.
