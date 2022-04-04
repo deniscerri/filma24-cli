@@ -402,10 +402,10 @@ parse_title(){
 	
 	if [[ $result_url == *serial* ]] && [[ $media_type == "movie" ]]
 	then
-		return 1
+		return
 	elif [[ ! $result_url == *serial* ]] && [[ $media_type == "series" ]]
 	then
-		return 1
+		return
 	fi
 
 	#Extracts text that is inside the title tag.
