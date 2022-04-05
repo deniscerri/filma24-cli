@@ -97,9 +97,9 @@ download () {
 	echo "Starting Download from Host $1..."
 	if [[ $2 == *"m3u"* ]]
 	then
-		ffmpeg -http_persistent 0 -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+		ffmpeg -http_persistent 0 -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
 	else
-		ffmpeg -nostdin -hide_banner -v warning -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+		ffmpeg -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
 	fi
 	
 	chosen_mp4=''
@@ -255,6 +255,10 @@ server_choice(){
 			echo "$Green-Playing $result_title"
 		fi
 		echo "$Blue-Current Server: $server_choice $White"
+		if [ -z "$mp4" ]
+		then
+			echo "$Red-No Video File was found in this Server. Try another one! $White"
+		fi
 		printf "Write Server Number [1-$nr_of_servers] or Quit by writing anything else: "
 		exec 0<&1
 		read server_choice	
@@ -343,12 +347,21 @@ fix_title(){
 search () {
 	query=$(echo "$query" | sed -e 's/ /%20/g')
 	url_title=$(curl --user-agent "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E  '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"\S')
+	
 	if [ -z "$url_title" ]
 	then
 		echo "$Red Media $title was not found! :( $White"
 		return
-	fi
+	fi	
 	
+	if [[ "$media_type" == "movie" ]]
+	then
+		url_title=$(echo "$url_title" | grep -v ".*/seriale/.*")
+	else
+		echo "$url_title"
+		url_title=$(echo "$url_title" | grep ".*/seriale/.*")
+	fi	
+
 	if [ $interactive -eq 1 ]
 	then
 		titles=$(echo "$url_title" | grep -o -P 'title="\K[^"]*' | awk '{print NR". "$0}')
@@ -441,11 +454,11 @@ while getopts 'm:t:hwis:e:o:' OPT; do
 			;;
 		m)
 			media_type="movie"
-			query=$OPTARG
+			query="$(echo "$*" | grep -oP '\Km[^-]*' | sed 's/\*m //g')"
 			;;
 		t)
 			media_type="series"
-			query=$OPTARG
+			query="$(echo "$*" | grep -oP '\Kt[^-]*' | sed 's/\*t //g')"
 			;;
 		s)
 			season=$OPTARG
