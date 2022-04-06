@@ -358,10 +358,8 @@ search () {
 	then
 		url_title=$(echo "$url_title" | grep -v ".*/seriale/.*")
 	else
-		echo "$url_title"
 		url_title=$(echo "$url_title" | grep ".*/seriale/.*")
 	fi	
-
 	if [ $interactive -eq 1 ]
 	then
 		titles=$(echo "$url_title" | grep -o -P 'title="\K[^"]*' | awk '{print NR". "$0}')
@@ -454,11 +452,11 @@ while getopts 'm:t:hwis:e:o:' OPT; do
 			;;
 		m)
 			media_type="movie"
-			query="$(echo "$*" | grep -oP '\Km[^-]*' | sed 's/\*m //g')"
+			query="$(echo "$*" | grep -oE '*m [^-]*' | sed 's/\.*m //g')"
 			;;
 		t)
 			media_type="series"
-			query="$(echo "$*" | grep -oP '\Kt[^-]*' | sed 's/\*t //g')"
+			query="$(echo "$*" | grep -oE '*t [^-]*' | sed 's/\.*t //g')"
 			;;
 		s)
 			season=$OPTARG
