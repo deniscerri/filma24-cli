@@ -2,7 +2,7 @@
 
 user_agent="Chrome/97"
 root_path=$(pwd)
-base_url="https://www.filma24.so"
+base_url="https://www.filma24.tv"
 newline=$'\n'
 file_size=0
 url_retries=0
@@ -147,7 +147,7 @@ get_video_link () {
 parse_embed_referer_watch() {
 	server_nr=$2
 	
-	referer="$(curl --user-agent "$user_agent" -s "$1?server=$server_nr" | grep -o -E '*<p><iframe.*' | tr -d '"' | grep -o -P 'src=\K[^ ]*' | xargs echo -n)"
+	referer="$(curl -L --user-agent "$user_agent" -s "$1?server=$server_nr" | grep -o -E '*<p><iframe.*' | tr -d '"' | grep -o -P 'src=\K[^ ]*' | xargs echo -n)"
 	
 	if [ -z "$referer" ]
 	then
@@ -169,13 +169,13 @@ parse_embed_referer_watch() {
 }
 
 parse_embed_referer () {
-	nr_of_servers=$(curl --user-agent "$user_agent" -s $1 | grep -o -E '.*<a data-servera=".*' | wc -l | tr -dc '0-9')
+	nr_of_servers=$(curl -L --user-agent "$user_agent" -s $1 | grep -o -E '.*<a data-servera=".*' | wc -l | tr -dc '0-9')
 	for ((i = 1 ; i <= $nr_of_servers ; i++))
 	do
 		
 		server="$1?server=$i"	
 	
-		referer="$(curl --user-agent "$user_agent" -s $server | grep -o -E '*<p><iframe.*' | tr -d '"' | grep -o -P 'src=\K[^ ]*' | xargs echo -n)"		
+		referer="$(curl -L --user-agent "$user_agent" -s $server | grep -o -E '*<p><iframe.*' | tr -d '"' | grep -o -P 'src=\K[^ ]*' | xargs echo -n)"		
 		if [ -z "$referer" ]
 		then
 			continue
@@ -185,7 +185,7 @@ parse_embed_referer () {
 					
 		if [[ $query == *"http"* ]]
 		then
-			result_title=$(curl --user-agent "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
+			result_title=$(curl -L --user-agent "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
 			fix_title
 		fi
 		
@@ -247,7 +247,7 @@ server_choice(){
 	while true
 	do	
 		clear
-		nr_of_servers=$(curl --user-agent "$user_agent" -s $1 | grep -o -E '.*<a data-servera=".*' | wc -l | tr -dc '0-9')
+		nr_of_servers=$(curl -L --user-agent "$user_agent" -s $1 | grep -o -E '.*<a data-servera=".*' | wc -l | tr -dc '0-9')
 		if [[ "$media_type" == "series" ]]
 		then
 			echo "$Green-Playing $result_title S$season-E$episode $White"
@@ -277,7 +277,7 @@ server_choice(){
 }
 
 parse_seasons () {
-	episode_list=$(curl --user-agent "$user_agent" -s "$1" | tr -d '\n' | grep -o -E '<div class="under-thumb seriale">[[:space:]]*<a href="([^"]*)"><h4>([^"]*)</h4\S' | tac)
+	episode_list=$(curl -L --user-agent "$user_agent" -s "$1" | tr -d '\n' | grep -o -E '<div class="under-thumb seriale">[[:space:]]*<a href="([^"]*)"><h4>([^"]*)</h4\S' | tac)
 		
 	if [ -z "$episode_list" ]
 	then
@@ -287,7 +287,7 @@ parse_seasons () {
 	#If user input was an url, result_title was never initiated
 	if [ -z "$result_title" ]
 	then
-		result_title=$(curl --user-agent "$user_agent" -s "$1" | tr -d "\n" | grep -o -E '<div class="category-head">[[:space:]].*<h3>([^"]*)</h3>' | grep -o -P '<h3>\K[^"]*' | sed 's/<\/h3>//g')
+		result_title=$(curl -L --user-agent "$user_agent" -s "$1" | tr -d "\n" | grep -o -E '<div class="category-head">[[:space:]].*<h3>([^"]*)</h3>' | grep -o -P '<h3>\K[^"]*' | sed 's/<\/h3>//g')
 		fix_title
 	fi
 	
@@ -346,7 +346,7 @@ fix_title(){
 
 search () {
 	query=$(echo "$query" | sed -e 's/ /%20/g')
-	url_title=$(curl --user-agent "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E  '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"\S')
+	url_title=$(curl -L --user-agent "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E  '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"\S')
 	
 	if [ -z "$url_title" ]
 	then
@@ -452,11 +452,22 @@ while getopts 'm:t:hwis:e:o:' OPT; do
 			;;
 		m)
 			media_type="movie"
-			query="$(echo "$*" | grep -oE '*m [^-]*' | sed 's/\.*m //g')"
+			if ! [[ $OPTARG == *.txt ]]
+			then	
+				query="$(echo "$*" | grep -oE '*m [^-]*' | sed 's/\.*m //g')"
+			else
+				query="$OPTARG"
+			fi
 			;;
 		t)
+			
 			media_type="series"
-			query="$(echo "$*" | grep -oE '*t [^-]*' | sed 's/\.*t //g')"
+			if ! [[ $OPTARG == *.txt ]]
+			then	
+				query="$(echo "$*" | grep -oE '*t [^-]*' | sed 's/\.*t //g')"
+			else
+				query="$OPTARG"
+			fi
 			;;
 		s)
 			season=$OPTARG
@@ -511,7 +522,7 @@ init_start(){
 			if [ $watch -eq 1 ]
 			then
 
-				result_title=$(curl --user-agent "$user_agent" -s $query | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
+				result_title=$(curl -L --user-agent "$user_agent" -s $query | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
 				fix_title
 				server_choice $query
 			else
@@ -525,9 +536,9 @@ init_start(){
 	fi
 }
 
-
 if [[ $query == *.txt ]]
 then
+	echo $query
 	txt_file=$query
 	if ! [ -f "$query" ]
 	then
@@ -542,5 +553,6 @@ then
 		init_start
 	done < "$txt_file"
 else
+	echo "$query"
 	init_start
 fi
