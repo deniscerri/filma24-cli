@@ -553,6 +553,5 @@ then
 		init_start
 	done < "$txt_file"
 else
-	echo "$query"
 	init_start
 fi
