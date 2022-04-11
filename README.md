@@ -61,9 +61,9 @@ Either install WSL (Windows Subsystem for Linux) or Git Bash.
 - ### Watch first episode of the first season
       f24 -wt [Series Title]
 - ### Watch first episode of a custom season
-      f24 -wt -s [Season Nr] [Series Title]
+      f24 -wt [Series Title] -s [Season Nr] 
 - ### Watch a custom episode of a custom season
-      f24 -wt -s [Season Nr] -e [Episode Nr] [Series Title]
+      f24 -wt [Series Title] -s [Season Nr] -e [Episode Nr] 
 
 ---
 
