@@ -69,7 +69,7 @@ parsevidmoly(){
 				
 				if [ ! -z "$timeout" ]
 						then
-								echo "$Blue\Timeout found. Waiting $timeout seconds"
+								echo "$Blue Timeout found. Waiting $timeout seconds $White"
 								sleep $timeout
 						fi
 				((url_retries=url_retries+1))
