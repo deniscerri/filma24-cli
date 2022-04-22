@@ -2,7 +2,10 @@
 
 user_agent="Chrome/97"
 root_path=$(pwd)
-base_url="https://www.filma24.so"
+
+base_url=$(curl --user-agent $user_agent -s --head -L https://www.filma24.tv | grep -oP "location: \K.*")
+base_url=${base_url:0:-1}
+
 newline=$'\n'
 file_size=0
 url_retries=0
