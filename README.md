@@ -20,22 +20,25 @@
 
 ### Generic Linux <a name="Linux"></a>
 
-`git clone https://github.com/deniscerri/filma24-cli && cd filma24-cli && sudo cp f24 /usr/local/bin/f24`
+`git clone https://github.com/deniscerri/filma24-cli` <br>
+`cd filma24-cli && chmod +x f24`<br>
+`sudo cp f24 /usr/local/bin/f24`
 
 ### Android <a name="Android"></a>
 
 - Download [Termux](https://f-droid.org/en/packages/com.termux/) <br>
 - Give storage permissions with the command: `termux-setup-storage` <br>
-- `git clone https://github.com/deniscerri/filma24-cli && cd filma24-cli && cp f24 $PREFIX/bin/f24`
-
-- (DISCLAIMER. Only Downloading is working for Android atm)
+- `git clone https://github.com/deniscerri/filma24-cli` <br>
+- `cd filma24-cli && chmod +x f24` <br>
+- `cp f24 $PREFIX/bin/f24`
+- (DISCLAIMER. VLC on Android doesn't support Referrers so there is no way to play on Android for now)
 
 ### Windows <a name="Windows"></a>
 
 Either install WSL (Windows Subsystem for Linux) or Git Bash.
 
-- If you choose WSL, you can use the same command as generic linux to add the program in $Path and get rid of the downloaded copy. (If you are running WSL1, you can't open VLC. You need to upgrade to WSL2 or use Git Bash)
-- On Git Bash you need to keep to copy f24 to /usr/bin/ directory instead and you need to run it as an administrator.
+- If you choose WSL, you can use the same commands as generic linux. (If you are running WSL1, you can't open VLC so you can only download with it. You need to upgrade to WSL2 or use Git Bash)
+- On Git Bash you need to keep to copy f24 to /usr/bin/ directory instead and you need to run it as an administrator to achieve that.
 
 ## Usage: <a name="Usage"></a>
 
