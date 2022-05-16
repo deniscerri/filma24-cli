@@ -1,6 +1,8 @@
-# **Filma24-CLI** - Download Albanian Movies and TV Series through filma24 using the terminal.
+# DEPRECATED [The website switched on Cloudflare Protection :/]
 
-## Table of Contents
+## **Filma24-CLI** - Download Albanian Movies and TV Series through filma24 using the terminal.
+
+### Table of Contents
 
 - [Dependencies](#Dependencies)
 - [Install](#Installation)
