@@ -1,8 +1,6 @@
-# DEPRECATED [The website switched on Cloudflare Protection :/]
+## **Filma24-CLI** - Download Albanian Movies and TV Series through filma24 using the terminal.
 
 ## Check out  [anisq](https://github.com/deniscerri/anisq) for a similar implementation
-
-## **Filma24-CLI** - Download Albanian Movies and TV Series through filma24 using the terminal.
 
 ### Table of Contents
 
