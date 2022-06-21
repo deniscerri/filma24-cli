@@ -51,7 +51,7 @@ parsevidmoly(){
         videoID=$(echo "$fixedURL" | sed 's/https:\/\/vidmoly.net\///g' | sed 's/https:\/\/vidmoly.to\///g' | sed 's/.html//g')
 
         videoHash=$(curl --connect-timeout 10 -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=&hash=" |
- grep -o -E 'name="hash" value=".*"' | grep -o -P 'value="\K[^"]*')
+ grep -o -E 'name="hash" value=".*"' | grep -o -P 'value="\K[^"]*' | head -1)
 	
 	if [ -z "$videoHash" ]
 	then
