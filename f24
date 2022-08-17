@@ -136,6 +136,13 @@ pick_mp4 () {
 
 
 get_video_link () {
+	if [[ "$1" == *".mp4" ]] || [[ "$1" == *".m3u"* ]]
+	then
+		mp4="$1"
+		return
+	fi
+
+
 	mp4=$(curl --connect-timeout 10 --user-agent "$user_agent" -s "$1" | grep -o -E '*https://.*([^"]*.m3u8.*)' | sed "s/\",\"/\n/g;s/\"//g;s/'//g;s/',//g;s/m3u8,/m3u8/g" | head -n 1)
 	#Checking if the referer contains a mp4 file instead of a m3u file
 	if [ -z "$mp4" ]
@@ -151,7 +158,7 @@ parse_embed_referer_watch() {
 	server_nr=$2
 	
 	referer="$(curl -L --user-agent "$user_agent" -s "$1?server=$server_nr" | grep -o -E '*<p><iframe.*' | tr -d '"' | grep -o -P 'src=\K[^ ]*' | xargs echo -n)"
-	
+	referer=${referer:="$(curl -L --user-agent "$user_agent" -s $server | grep -oE '*<source src.*' | tr -d '"' | grep -oP 'src=\K[^ ]*' | xargs echo -n)"}
 	if [ -z "$referer" ]
 	then
 		return
@@ -343,7 +350,7 @@ parse_seasons () {
 }
 
 fix_title(){
-        result_title=$(echo $result_title | sed 's/://g; s/ *$//; s/&nbsp;/ /g; s/&amp;/\&/g; s/&lt;/\</g; s/&gt;/\>/g; s/&quot;		/\"/g; s/#&#39;/\'"'"'/g; s/&ldquo;/\"/g; s/&rdquo;/\"/g; s/&#8217;/\'"'"'/g;')
+	result_title=$(echo $result_title | sed 's/://g; s/ *$//; s/&nbsp;/ /g; s/&amp;/\&/g; s/&lt;/\</g; s/&gt;/\>/g; s/&quot;/\"/g; s/#&#39;/\'"'"'/g; s/&ldquo;/\"/g; s/&rdquo;/\"/g; s/&#8217;/\'"'"'/g;')
 }
 
 
@@ -457,7 +464,7 @@ while getopts 'm:t:hwis:e:o:' OPT; do
 			media_type="movie"
 			if ! [[ $OPTARG == *.txt ]]
 			then	
-				query="$(echo "$*" | grep -oE '*m [^-]*' | sed 's/\.*m //g')"
+				query="$(echo "$*" | grep -oE '*m [^-].*' | sed 's/\.*m //g')"
 			else
 				query="$OPTARG"
 			fi
@@ -551,7 +558,7 @@ then
 
 	while IFS= read -r line
 	do
-		query=$line
+		query="$line"
 		echo "Searching for $query ..."
 		init_start
 	done < "$txt_file"
