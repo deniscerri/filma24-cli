@@ -122,6 +122,11 @@ check_http () {
 	else
 		referer=$1
 	fi
+
+	if [[ $referer == *"fasturl"* ]]
+	then
+		referer=$(echo "$referer" | sed 's/fasturl.*\//vidmoly.net\//g')
+	fi	
 }
 
 pick_mp4 () {
@@ -219,7 +224,7 @@ parse_embed_referer () {
 				echo "$Green Movie is Downloaded. $White"
 				return 1
 			fi
-		fi		
+		fi	
 		
 		if [[ $referer == *"vidmoly"* ]]
 		then
