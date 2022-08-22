@@ -1,6 +1,6 @@
 ## **Filma24-CLI** - Download Albanian Movies and TV Series through filma24 using the terminal.
 
-## Check out  [anisq](https://github.com/deniscerri/anisq) for a similar implementation
+## Check out [anisq](https://github.com/deniscerri/anisq) for a similar implementation
 
 ### Table of Contents
 
@@ -66,9 +66,9 @@ Either install WSL (Windows Subsystem for Linux) or Git Bash.
 - ### Watch first episode of the first season
       f24 -wt [Series Title]
 - ### Watch first episode of a custom season
-      f24 -wt [Series Title] -s [Season Nr] 
+      f24 -wt [Series Title] -s [Season Nr]
 - ### Watch a custom episode of a custom season
-      f24 -wt [Series Title] -s [Season Nr] -e [Episode Nr] 
+      f24 -wt [Series Title] -s [Season Nr] -e [Episode Nr]
 
 ---
 
@@ -96,6 +96,7 @@ You can use a txt file filled with names or url's and use that as input. The scr
       -e set a particular episode to download. By default it downloads all episodes
       -o set a custom download path. By default it downloads in your current working directory
       -i use interactive mode when searching, instead of the script picking it itself
+      -u update the script
 
 ## Disclaimer: <a name="Disclaimer"></a>
 
