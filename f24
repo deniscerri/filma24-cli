@@ -219,7 +219,13 @@ iterate_servers () {
 	then
 		season_nr=$(echo "$episode_label" | grep -o -P 'Sezoni \K[^ ]*')
 		episode_nr=$(echo "$episode_label" | grep -o -P 'Episodi \K[^"]*' | tr -d " (I FUNDIT)")
-		download_path="$root_path/$result_title/$result_title - S${season_nr}E${episode_nr}.mkv"
+		
+		if [ -z $season_nr ] || [ -z episode_nr ]
+		then
+			download_path="$root_path/$result_title/$result_title - $episode_label.mkv"
+		else
+			download_path="$root_path/$result_title/$result_title - S${season_nr}E${episode_nr}.mkv"
+		fi
 		
 		if [ -f "$download_path" ]
 		then
