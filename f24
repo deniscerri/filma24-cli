@@ -60,8 +60,7 @@ update_script(){
 	if [ -z "$update" ]; then
 		echo "Script is already on the latest version!"
 	else
-		echo "$update_file" > "$f24_location"
-		echo "Updated script!"
+		echo "$update_file" > "$f24_location" && echo "Updated script!"
 	fi
 	exit 0
 }
