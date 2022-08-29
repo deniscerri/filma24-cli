@@ -15,6 +15,7 @@ base_url=${base_url:0:-1}
 
 newline=$'\n'
 file_size=0
+curr_runtime=99999999999999999
 url_retries=0
 season=0
 episode=0
@@ -149,12 +150,21 @@ check_http () {
 }
 
 pick_mp4 () {
+	start=$(date +%s)
 	size_tmp=$(ffprobe -headers "Referer: $1" -i "$2" -show_entries format=size -v quiet -of csv="p=0" | tr -dc '0-9')
-	if (( size_tmp > file_size ));
-	then	
-		file_size=$size_tmp
-		chosen_mp4=$2
-		chosen_referer=$1
+	end=$(date +%s)
+	runtime=$((end-start))
+
+	if (( runtime < curr_runtime )) || (( size_tmp > file_size ));
+	then
+		if (( size_tmp > 0 ));
+		then
+
+			file_size=$size_tmp
+			curr_runtime=$runtime
+			chosen_mp4=$2
+			chosen_referer=$1
+		fi
 	fi
 }
 
@@ -166,11 +176,25 @@ get_video_link () {
 		return
 	fi
 
-	mp4=$(curl --connect-timeout 5 -L -A "$user_agent" -s "$1" | grep -o -E '*https://.*([^"]*.m3u8.*)' | sed "s/\"\(.*\),/\n/g;s/\"//g;s/'//g;s/',//g;s/m3u8,/m3u8/g" | head -n 1)
-	#Checking if the referer contains a mp4 file instead of a m3u file
-	if [ -z "$mp4" ]
-	then	
-		mp4="$(curl --connect-timeout 5 -L -A "$user_agent" -s "$1" | grep -o -E '*https://.*([^"]*.mp4.*)' | grep -o '[^{,"]\+"' | sed 's/"//g' | sed "s/'//g" | grep -o -E 'http.*' | head -1)"	
+	
+	if [[ $1 == *"vidmoly"* ]]
+	then
+		parsevidmoly
+	fi
+	
+	if [ -z "$mp4" ] 
+	then
+		ref_html="$(curl --max-time 5 --connect-timeout 5 -L -A "$user_agent" -s "$1" | tr -d "\0")"	
+		
+		if [ -z "$ref_html" ]
+		then
+			mp4=$(echo "$ref_html" | grep -o -E '*https://.*([^"]*.m3u8.*)' | sed "s/\"\(.*\),/\n/g;s/\"//g;s/'//g;s/',//g;s/m3u8,/m3u8/g" | head -n 1)
+			#Checking if the referer contains a mp4 file instead of a m3u file
+			mp4=${mp4:="$(echo "$ref_html" | grep -o -E '*https://.*([^"]*.mp4.*)' | grep -o '[^{,"]\+"' | sed 's/"//g' | sed "s/'//g" | grep -o -E 'http.*' | head -1)"}
+		fi
+
+		#Use referrer as last resort
+		mp4=${mp4:="$1"}
 	fi
 	
 	echo $1
@@ -188,23 +212,14 @@ parse_embed_referer () {
 		return 1
 	fi
 	
-	check_http $referer
-				
+	check_http $referer			
 	if [[ $query == *"http"* ]]
 	then
 		result_title=$(curl -L -A "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
 		fix_title
 	fi
-	
-	if [[ $referer == *"vidmoly"* ]]
-	then
-		parsevidmoly
-	fi
 
-	if [ -z "$mp4" ]
-	then
-		get_video_link $referer
-	fi
+	get_video_link $referer
 }
 
 iterate_servers () {
@@ -247,7 +262,6 @@ iterate_servers () {
 	for ((i = 1 ; i <= $nr_of_servers ; i++))
 	do
 		parse_embed_referer $1 $i
-
 		if [ $? -eq 1 ]
 		then
 			continue
