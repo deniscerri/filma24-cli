@@ -3,7 +3,7 @@
 user_agent="Chrome/97"
 root_path=$(pwd)
 
-base_url=$(curl -A $user_agent -s --connect-timeout 5 --head -L https://www.filma24.tv | grep -oP "location: \K.*")
+base_url=$(curl -A $user_agent -s --connect-timeout 5 --head -L https://www.filma24.ch | grep -oP "location: \K.*")
 if [ -z "$base_url" ]
 then
 	echo "Couldn't reach site!"
