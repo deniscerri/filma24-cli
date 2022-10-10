@@ -270,6 +270,7 @@ iterate_servers () {
 		if [[ $mp4 == *"m3u"* ]]
 		then
 			download $referer $mp4
+			break
 		else
 			pick_mp4 $referer $mp4
 		fi
@@ -471,16 +472,20 @@ parse_title(){
 	
 	if [[ $result_title == *"$input_text"* ]]
 	then	
+		echo "Downloading $result_title ..."
 		if [[ $media_type == "movie" ]]
 		then
 			if [ $watch -eq 1 ]
 			then
 				server_choice $result_url
+				return 1
 			else
 				iterate_servers $result_url
+				return 1
 			fi
 		else
 			parse_seasons $result_url
+			return 1
 		fi
 	fi
 }
