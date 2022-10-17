@@ -187,7 +187,10 @@ get_video_link () {
 	fi
 	
 	echo $1
-	echo $mp4
+	if ! [[ $1 == $mp4 ]]
+	then
+		echo $mp4
+	fi
 }
 
 parse_embed_referer () {
@@ -204,7 +207,7 @@ parse_embed_referer () {
 	check_http $referer			
 	if [[ $query == *"http"* ]]
 	then
-		result_title=$(curl -L -A "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
+		result_title=$(curl -L -A "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="d-flex player-controller">[[:space:]]*<h4>([^"]*)</h4>' | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
 		fix_title
 	fi
 
@@ -212,17 +215,17 @@ parse_embed_referer () {
 }
 
 iterate_servers () {
-	if [[ $query == *"http"* ]]
+	if [ -z "$result_title" ]
 	then
-		result_title=$(curl -L -A "$user_agent" -s $1 | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
+		result_title=$(curl -L -A "$user_agent" -s $1 | tr -d "\n" | grep -o -E '<div class="d-flex player-controller">[[:space:]]*<h4>([^"]*)</h4>' | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g' | sed "s/<i class='mdi mdi-circle-small'><\/i>/ /g")
 		fix_title
 	fi
 
 	if [[ $media_type == "series" ]]
 	then
-		season_nr=$(echo "$episode_label" | grep -o -P 'Sezoni \K[^ ]*')
-		episode_nr=$(echo "$episode_label" | grep -o -P 'Episodi \K[^"]*' | tr -d " (I FUNDIT)")
-		
+		season_nr=$(echo "$episode_label" | grep -o -P 'SEZONI \K[^ ]*')
+		episode_nr=$(echo "$episode_label" | grep -o -P 'EPISODI \K[^"]*')
+
 		if [ -z $season_nr ] || [ -z episode_nr ]
 		then
 			download_path="$root_path/$result_title/$result_title - $episode_label.mkv"
@@ -247,7 +250,7 @@ iterate_servers () {
 	fi	
 
 
-	nr_of_servers=$(curl -L -A "$user_agent" -s $1 | grep -o -E '.*<a data-servera=".*' | wc -l | tr -dc '0-9')
+	nr_of_servers=$(curl -L -A "$user_agent" -s $1 | grep -o -E '<a type="button".*href=".*server.*"' | wc -l | tr -dc '0-9')
 	for ((i = 1 ; i <= $nr_of_servers ; i++))
 	do
 		parse_embed_referer $1 $i
@@ -314,7 +317,7 @@ server_choice(){
 }
 
 parse_seasons () {
-	episode_list=$(curl -L -A "$user_agent" -s "$1" | tr -d '\n' | grep -o -E '<div class="under-thumb seriale">[[:space:]]*<a href="([^"]*)"><h4>([^"]*)</h4\S' | tac)
+	episode_list=$(curl -L -A "$user_agent" -s "$1" | tr -d '\n' | grep -o -E '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"' | tac)
 		
 	if [ -z "$episode_list" ]
 	then
@@ -324,7 +327,7 @@ parse_seasons () {
 	#If user input was an url, result_title was never initiated
 	if [ -z "$result_title" ]
 	then
-		result_title=$(curl -L -A "$user_agent" -s "$1" | tr -d "\n" | grep -o -E '<div class="category-head">[[:space:]].*<h3>([^"]*)</h3>' | grep -o -P '<h3>\K[^"]*' | sed 's/<\/h3>//g')
+		result_title=$(curl -L -A "$user_agent" -s "$1" | tr -d "\n" | grep -o -E '<h3 class="category-head">([^"]*)</h3>' | grep -o -P '>\K[^"]*' | sed 's/<\/h3>//g')
 		fix_title
 	fi
 	
@@ -366,7 +369,7 @@ parse_seasons () {
 	fi
 
 	echo "$episode_list" | while IFS= read -r line ; do
-		episode_label=$(echo "$line" | grep -o -P 'h4>\K[^<]*')
+		episode_label=$(echo "$line" | grep -o -P 'title=\K[^<].*' | sed "s/<i class='mdi mdi-circle-medium'><\/i>/ /g;s/\"//g")
 		episode_url=$(echo "$line" | grep -o -E 'https.*/"' | tr -d "\"")
 
 		echo "Downloading $episode_label"
@@ -381,23 +384,24 @@ fix_title(){
 
 search () {
 	query=$(echo "$query" | sed -e 's/ /%20/g')
-	url_title=$(curl -L -A "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E  '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"\S')
 	
+	if [[ "$media_type" == "movie" ]]
+	then
+		url_title=$(curl -L -A "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E '<div class="under-thumb">[[:space:]].<a href="([^"]*)" title="([^"]*)" class="post-title"')
+		titles=$(echo "$url_title" | grep -o -P 'title="\K[^"]*' | awk '{print NR". "$0}')
+	else
+		url_title=$(curl -L -A "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E '<div class="under-thumb">[[:space:]].<a href="([^"]*)">.[[:space:]].<h4>([^"]*)</h4>')
+		titles=$(echo "$url_title" | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
+	fi
+
 	if [ -z "$url_title" ]
 	then
 		echo "$Red Media $title was not found! :( $White"
 		return
-	fi	
-	
-	if [[ "$media_type" == "movie" ]]
-	then
-		url_title=$(echo "$url_title" | grep -v ".*/seriale/.*")
-	else
-		url_title=$(echo "$url_title" | grep ".*/seriale/.*")
-	fi	
+	fi
+
 	if [ $interactive -eq 1 ]
 	then
-		titles=$(echo "$url_title" | grep -o -P 'title="\K[^"]*' | awk '{print NR". "$0}')
 		result_nr=$(echo "$titles" | awk 'END{print NR}')
 		
 		if [ $result_nr -eq 1 ]
@@ -444,21 +448,26 @@ search () {
 }
 
 parse_title(){
-	result_url=$(echo "$1" | grep -o -E 'https.*/')
-	
-	if [[ $result_url == *serial* ]] && [[ $media_type == "movie" ]]
+	#Extracts text that is inside the title tag.
+	#Sed removes the space left out in the end
+	if [[ "$media_type" == "movie" ]]
+	then
+		result_title=$(echo "$1" | grep -o -P 'title="\K[^"]*')
+		result_url=$(echo "$1" | grep -oE 'https.*/"' | tr -d "\"")
+	else
+		result_title=$(echo "$1" | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
+		result_url=$(echo "$1" | grep -oE 'https.*/">' | tr -d "\">")
+	fi
+	fix_title
+
+	if [[ $result_url == *"serial"* ]] && [[ $media_type == "movie" ]]
 	then
 		return
-	elif [[ ! $result_url == *serial* ]] && [[ $media_type == "series" ]]
+	elif [[ ! $result_url == *"serial"* ]] && [[ $media_type == "series" ]]
 	then
 		return
 	fi
 
-	#Extracts text that is inside the title tag.
-	#Sed removes the space left out in the end
-	result_title=$(echo "$1" | grep -o -P 'title="\K[^"]*')
-	fix_title
-	
 	if [[ $result_title == *"$input_text"* ]]
 	then	
 		echo "Downloading $result_title ..."
@@ -570,7 +579,7 @@ init_start(){
 			if [ $watch -eq 1 ]
 			then
 
-				result_title=$(curl -L -A "$user_agent" -s $query | tr -d "\n" | grep -o -E '<div class="title">[[:space:]]*<h2>([^"]*)</h2>' | grep -o -P '<h2>\K[^"]*' | sed 's/<\/h2>//g')
+				result_title=$(curl -L -A "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="d-flex player-controller">[[:space:]]*<h4>([^"]*)</h4>' | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
 				fix_title
 				server_choice $query
 			else
@@ -603,3 +612,4 @@ then
 else
 	init_start
 fi
+
