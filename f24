@@ -140,7 +140,7 @@ check_http () {
 
 pick_mp4 () {
 	start=$(date +%s)
-	size_tmp=$(ffprobe -headers "Referer: $1" -i "$2" -show_entries format=size -v quiet -of csv="p=0" | tr -dc '0-9')
+	size_tmp=$(ffprobe -timeout 5000 -headers "Referer: $1" -i "$2" -show_entries format=size -v quiet -of csv="p=0" | tr -dc '0-9')
 	end=$(date +%s)
 	runtime=$((end-start))
 
@@ -378,7 +378,7 @@ parse_seasons () {
 }
 
 fix_title(){
-	result_title=$(echo $result_title | sed 's/://g; s/ *$//; s/&nbsp;/ /g; s/&amp;/\&/g; s/&lt;/\</g; s/&gt;/\>/g; s/&quot;/\"/g; s/#&#39;/\'"'"'/g; s/&ldquo;/\"/g; s/&rdquo;/\"/g; s/&#8217;/\'"'"'/g;')
+	result_title=$(echo $result_title | sed 's/://g; s/ *$//; s/&nbsp;/ /g; s/&amp;/\&/g; s/&lt;/\</g; s/&gt;/\>/g; s/&quot;/\"/g; s/#&#39;/\'"'"'/g; s/&ldquo;/\"/g; s/&#8211;/\-/g; s/&rdquo;/\"/g; s/&#8217;/\'"'"'/g;')
 }
 
 
