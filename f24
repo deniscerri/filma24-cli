@@ -345,7 +345,7 @@ parse_seasons () {
 
 	if [ $season -gt 0 ]
 	then
-		episode_list=$(echo "$episode_list" | grep -o -E ".*Sezoni $season.*")
+		episode_list=$(echo "$episode_list" | grep -o -E ".*SEZONI $season.*")
 	fi
 
 	
