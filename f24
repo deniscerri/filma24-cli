@@ -287,7 +287,7 @@ server_choice(){
 	while true
 	do	
 		clear
-		nr_of_servers=$(curl -L -A "$user_agent" -s $1 | grep -o -E '.*<a data-servera=".*' | wc -l | tr -dc '0-9')
+		nr_of_servers=$(curl -L -A "$user_agent" -s $1 | grep -o -E '<a type="button".*href=".*server.*"' | wc -l | tr -dc '0-9')
 		if [[ "$media_type" == "series" ]]
 		then
 			echo "$Green-Playing $result_title S$season-E$episode $White"
