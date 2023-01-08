@@ -217,10 +217,10 @@ parse_embed_referer () {
 iterate_servers () {
 	if [ -z "$result_title" ]
 	then
-		result_title=$(curl -L -A "$user_agent" -s $1 | tr -d "\n" | grep -o -E '<div class="d-flex player-controller">[[:space:]]*<h4>([^"]*)</h4>' | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g' | sed "s/<i class='mdi mdi-circle-small'><\/i>/ /g")
+		result_title=$(curl -L -A "$user_agent" -s $1 | tr -d "\n" | grep -o -E '<div class="d-flex player-controller".*>[[:space:]]*<h4 class="my-auto">([^"]*)</h4>' | grep -o -P '<h4 class="my-auto">\K[^"]*' | sed 's/<\/h4>//g' | sed "s/<i class='mdi mdi-circle-small'><\/i>/ /g")
 		fix_title
 	fi
-
+	
 	if [[ $media_type == "series" ]]
 	then
 		season_nr=$(echo "$episode_label" | grep -o -P 'SEZONI \K[^ ]*')
@@ -579,7 +579,7 @@ init_start(){
 			if [ $watch -eq 1 ]
 			then
 
-				result_title=$(curl -L -A "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="d-flex player-controller">[[:space:]]*<h4>([^"]*)</h4>' | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
+				result_title=$(curl -L -A "$user_agent" -s $query | tr -d "\n" | grep -o -E '<div class="d-flex player-controller".*>[[:space:]]*<h4 class="my-auto">([^"]*)</h4>' | grep -o -P '<h4 class="my-auto">\K[^"]*' | sed 's/<\/h4>//g')
 				fix_title
 				server_choice $query
 			else
