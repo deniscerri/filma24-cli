@@ -56,6 +56,15 @@ update_script(){
 }
 
 
+parsedood(){
+	fixedURL=$(echo "$referer" | sed 's/e/d/g')
+	page_with_mp4=$(curl -A "$user_agent" -s "$fixedURL" | grep -o -E 'download-content">.*' | grep -oE 'a href=".*"' | grep -oP 'a href="\K[^"]*"' | sed 's/"//g')
+	a=$(echo $fixedURL | sed 's/d\/.*//g')
+	b=$(echo $a$page_with_mp4)
+	mp4=$(curl -A "$user_agent" -s "$b" | grep -oP 'window.open\(\K[^\)]+' | grep -oP "'\K[^\"]+" | sed "s/',.*//g")
+	echo $mp4
+}
+
 parsevidmoly(){
 	fixedURL=$(echo "$referer" | sed 's/embed-//g')
 	videoID=$(echo "$fixedURL" | sed 's/https:\/\/vidmoly.net\///g' | sed 's/https:\/\/vidmoly.to\///g' | sed 's/.html//g')
@@ -170,7 +179,12 @@ get_video_link () {
 	then
 		parsevidmoly
 	fi
-	
+
+	if [[ $1 == *"dood"* ]]
+	then
+		parsedood
+	fi
+
 	if [ -z "$mp4" ] 
 	then
 		ref_html="$(curl --max-time 5 --connect-timeout 5 -L -A "$user_agent" -s "$1" | tr -d "\0")"	
@@ -228,9 +242,9 @@ iterate_servers () {
 
 		if [ -z $season_nr ] || [ -z episode_nr ]
 		then
-			download_path="$root_path/$result_title/$result_title - $episode_label.mkv"
+			download_path="$root_path/$result_title/$result_title - $episode_label.mp4"
 		else
-			download_path="$root_path/$result_title/$result_title - S${season_nr}E${episode_nr}.mkv"
+			download_path="$root_path/$result_title/$result_title - S${season_nr}E${episode_nr}.mp4"
 		fi
 		
 		if [ -f "$download_path" ]
@@ -240,7 +254,7 @@ iterate_servers () {
 		fi
 		
 	else	
-		download_path="$root_path/$result_title.mkv"
+		download_path="$root_path/$result_title.mp4"
 			
 		if [ -f "$download_path" ]
 		then
