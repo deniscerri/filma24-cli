@@ -188,12 +188,10 @@ get_video_link () {
 	if [ -z "$mp4" ] 
 	then
 		ref_html="$(curl --max-time 5 --connect-timeout 5 -L -A "$user_agent" -s "$1" | tr -d "\0")"	
-		
-		if [ -z "$ref_html" ]
+		if [ ! -z "$ref_html" ]
 		then
-			mp4=$(echo "$ref_html" | grep -o -E '*https://.*([^"]*.m3u8.*)' | sed "s/\"\(.*\),/\n/g;s/\"//g;s/'//g;s/',//g;s/m3u8,/m3u8/g" | head -n 1)
-			#Checking if the referer contains a mp4 file instead of a m3u file
-			mp4=${mp4:="$(echo "$ref_html" | grep -o -E '*https://.*([^"]*.mp4.*)' | grep -o '[^{,"]\+"' | sed 's/"//g' | sed "s/'//g" | grep -o -E 'http.*' | head -1)"}
+			mp4=$(echo $ref_html | grep -oE 'http[^ ]+(m3u[8]?|mp4)' | head -n 1)
+			
 		fi
 
 		#Use referrer as last resort
