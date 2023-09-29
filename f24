@@ -227,11 +227,8 @@ parse_embed_referer () {
 }
 
 iterate_servers () {
-	if [ -z "$result_title" ]
-	then
-		result_title=$(curl -L -A "$user_agent" -s $1 | tr -d "\n" | grep -o -E '<div class="d-flex player-controller".*>[[:space:]]*<h4 class="my-auto">([^"]*)</h4>' | grep -o -P '<h4 class="my-auto">\K[^"]*' | sed 's/<\/h4>//g' | sed "s/<i class='mdi mdi-circle-small'><\/i>/ /g")
-		fix_title
-	fi
+	result_title=$(curl -L -A "$user_agent" -s $1 | tr -d "\n" | grep -o -E '<div class="d-flex player-controller".*>[[:space:]]*<h4 class="my-auto">([^"]*)</h4>' | grep -o -P '<h4 class="my-auto">\K[^"]*' | sed 's/<\/h4>//g' | sed "s/<i class='mdi mdi-circle-small'><\/i>/ /g")
+	fix_title
 	
 	if [[ $media_type == "series" ]]
 	then
@@ -253,7 +250,6 @@ iterate_servers () {
 		
 	else	
 		download_path="$root_path/$result_title.mp4"
-			
 		if [ -f "$download_path" ]
 		then
 			echo "$Green Movie is Downloaded. $White"
@@ -483,6 +479,7 @@ parse_title(){
 	if [[ $result_title == *"$input_text"* ]]
 	then	
 		echo "Downloading $result_title ..."
+		echo $result_url
 		if [[ $media_type == "movie" ]]
 		then
 			if [ $watch -eq 1 ]
