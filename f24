@@ -21,604 +21,605 @@ LYellow=$'\e[1;92m'
 LCyan=$'\e[1;96m'
 
 help_text(){
-	while IFS= read -r line; do
-		echo $line
-	done <<-EOF	
-		Usage:
-		    f24 [options] [input title or file]
-		Examples:
-		    f24 -m [Movie Title or URL]
-		    f24 -t [Series Title or URL]
-		Options:
-		   -h show this page
-		   -m sets media type as movie
-		   -t sets media type as tv series
-		   -w watch instead of downloading
-		   -s set a particular season to download. By default it downloads all seasons
-		   -e set a particular episode to download. By default it downloads all episodes
-		   -o set a custom download path. By default it downloads in your current working directory
-		   -i use interactive mode when searching, instead of the script picking it itself
-		   -u update the script
-		   You can Also use .txt files containing lists of titles or url's as input
-	EOF
+        while IFS= read -r line; do
+                echo $line
+        done <<-EOF
+                Usage:
+                    f24 [options] [input title or file]
+                Examples:
+                    f24 -m [Movie Title or URL]
+                    f24 -t [Series Title or URL]
+                Options:
+                   -h show this page
+                   -m sets media type as movie
+                   -t sets media type as tv series
+                   -w watch instead of downloading
+                   -s set a particular season to download. By default it downloads all seasons
+                   -e set a particular episode to download. By default it downloads all episodes
+                   -o set a custom download path. By default it downloads in your current working directory
+                   -i use interactive mode when searching, instead of the script picking it itself
+                   -u update the script
+                   You can Also use .txt files containing lists of titles or url's as input
+        EOF
 }
 
 update_script(){
-	update_file="$(curl -A "$user_agent" -s "https://raw.githubusercontent.com/deniscerri/filma24-cli/main/f24")" || die "Connection error"
-	f24_location="$(which f24)"
-	update="$(echo "$update_file" | diff -u "$f24_location" -)"
-	if [ -z "$update" ]; then
-		echo "Script is already on the latest version!"
-	else
-		echo "$update_file" > "$f24_location" && echo "Updated script!"
-	fi
-	exit 0
+        update_file="$(curl -A "$user_agent" -s "https://raw.githubusercontent.com/deniscerri/filma24-cli/main/f24")" || die "Connection error"
+        f24_location="$(which f24)"
+        update="$(echo "$update_file" | diff -u "$f24_location" -)"
+        if [ -z "$update" ]; then
+                echo "Script is already on the latest version!"
+        else
+                echo "$update_file" > "$f24_location" && echo "Updated script!"
+        fi
+        exit 0
 }
 
 
 parsedood(){
-	fixedURL=$(echo "$referer" | sed 's/e/d/g')
-	page_with_mp4=$(curl -A "$user_agent" -s "$fixedURL" | grep -o -E 'download-content">.*' | grep -oE 'a href=".*"' | grep -oP 'a href="\K[^"]*"' | sed 's/"//g')
-	a=$(echo $fixedURL | sed 's/d\/.*//g')
-	b=$(echo $a$page_with_mp4)
-	mp4=$(curl -A "$user_agent" -s "$b" | grep -oP 'window.open\(\K[^\)]+' | grep -oP "'\K[^\"]+" | sed "s/',.*//g")
-	echo $mp4
+        fixedURL=$(echo "$referer" | sed 's/e/d/g')
+        page_with_mp4=$(curl -A "$user_agent" -s "$fixedURL" | grep -o -E 'download-content">.*' | grep -oE 'a href=".*"' | grep -oP 'a href="\K[^"]*"' | sed 's/"//g')
+        a=$(echo $fixedURL | sed 's/d\/.*//g')
+        b=$(echo $a$page_with_mp4)
+        mp4=$(curl -A "$user_agent" -s "$b" | grep -oP 'window.open\(\K[^\)]+' | grep -oP "'\K[^\"]+" | sed "s/',.*//g")
+        echo $mp4
 }
 
 parsevidmoly(){
-	fixedURL=$(echo "$referer" | sed 's/embed-//g')
-	videoID=$(echo "$fixedURL" | sed 's/https:\/\/vidmoly.net\///g' | sed 's/https:\/\/vidmoly.to\///g' | sed 's/.html//g')
+        fixedURL=$(echo "$referer" | sed 's/embed-//g')
+        videoID=$(echo "$fixedURL" | sed 's/https:\/\/vidmoly.net\///g' | sed 's/https:\/\/vidmoly.to\///g' | sed 's/.html//g')
 
-	videoHash=$(curl --connect-timeout 10 -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=&hash=" |
+        videoHash=$(curl --connect-timeout 10 -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=&hash=" |
  grep -o -E 'name="hash" value=".*"' | grep -o -P 'value="\K[^"]*' | head -1)
-	
-	if [ -z "$videoHash" ]
-	then
-		return
-	fi	
 
-	page_with_mp4=$(curl -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=n&hash=$videoHash")
-	mp4=$(echo "$page_with_mp4" | grep -o -E '*https://.*([^"])*.mp4' | head -1)
+        if [ -z "$videoHash" ]
+        then
+                mp4=$(yt-dlp --print "%(url)s" "$fixedURL")
+                return
+        fi
 
-	if [ -z "$mp4" ]
-	then
-		if [[ $url_retries -gt 10 ]]
-		then
-			url_retries=0
-			return 1
-		else
-			timeout=$(echo $page_with_mp4 | grep -o -E '*<b class="err">You have to wait[^"<b]*' | tr -dc '0-9')
-			
-			if [ ! -z "$timeout" ]
-					then
-							echo "$Blue Timeout found. Waiting $timeout seconds $White"
-							sleep $timeout
-					fi
-			((url_retries=url_retries+1))
-			parsevidmoly
-		fi
-	fi
+        page_with_mp4=$(curl -s -i -H "Accept: text/html" -H "Content-Type: text/html" -X GET "https://vidmoly.net/dl?op=download_orig&id=$videoID&mode=n&hash=$videoHash")
+        mp4=$(echo "$page_with_mp4" | grep -o -E '*https://.*([^"])*.mp4' | head -1)
+
+        if [ -z "$mp4" ]
+        then
+                if [[ $url_retries -gt 10 ]]
+                then
+                        url_retries=0
+                        return 1
+                else
+                        timeout=$(echo $page_with_mp4 | grep -o -E '*<b class="err">You have to wait[^"<b]*' | tr -dc '0-9')
+
+                        if [ ! -z "$timeout" ]
+                                        then
+                                                        echo "$Blue Timeout found. Waiting $timeout seconds $White"
+                                                        sleep $timeout
+                                        fi
+                        ((url_retries=url_retries+1))
+                        parsevidmoly
+                fi
+        fi
 
 }
 
 download () {
-	if [ -z "$2" ]
-	then
-		echo "$Red Couldn't find a suitable stream! :( $White"
-		return 1
-	fi
-	if [ $watch -eq 1 ]
-	then
-		vlc --http-referrer "$1" "$2" > /dev/null 2>&1 &
-		sleep 5
-		return
-	fi
+        if [ -z "$2" ]
+        then
+                echo "$Red Couldn't find a suitable stream! :( $White"
+                return 1
+        fi
+        if [ $watch -eq 1 ]
+        then
+                vlc --http-referrer "$1" "$2" > /dev/null 2>&1 &
+                sleep 5
+                return
+        fi
 
 
-	echo "Starting Download from Host $1..."
-	if [[ $2 == *"m3u"* ]]
-	then
-		ffmpeg -http_persistent 0 -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
-	else
-		ffmpeg -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
-	fi
-	
-	chosen_mp4=''
-	chosen_referer=''
-	file_size=0
+        echo "Starting Download from Host $1..."
+        yt-dlp --referer "$1" "$2" -o "$download_path" || true
+        # if [[ $2 == *"m3u"* ]]
+        # then
+        #       ffmpeg -http_persistent 0 -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+        # else
+        #       ffmpeg -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+        # fi
+
+        chosen_mp4=''
+        chosen_referer=''
+        file_size=0
 }
 
 check_http () {
-	if [ -z $1 ]
-	then
-		return
-	fi
-	http=$(echo "$1" | grep "^http" | wc -c)
-	if [ "$http" -eq 0 ]
-	then
-		referer="https:$(echo $1 | xargs echo -n)"
-	else
-		referer=$1
-	fi
+        if [ -z $1 ]
+        then
+                return
+        fi
+        http=$(echo "$1" | grep "^http" | wc -c)
+        if [ "$http" -eq 0 ]
+        then
+                referer="https:$(echo $1 | xargs echo -n)"
+        else
+                referer=$1
+        fi
 
-	if [[ $referer == *"fasturl"* ]]
-	then
-		referer=$(echo "$referer" | sed 's/fasturl.*\//vidmoly.net\//g')
-	fi	
+        if [[ $referer == *"fasturl"* ]]
+        then
+                referer=$(echo "$referer" | sed 's/fasturl.*\//vidmoly.net\//g')
+        fi
 }
 
 pick_mp4 () {
-	start=$(date +%s)
-	size_tmp=$(ffprobe -timeout 5000 -headers "Referer: $1" -i "$2" -show_entries format=size -v quiet -of csv="p=0" | tr -dc '0-9')
-	end=$(date +%s)
-	runtime=$((end-start))
+        start=$(date +%s)
+        size_tmp=$(ffprobe -timeout 5000 -headers "Referer: $1" -i "$2" -show_entries format=size -v quiet -of csv="p=0" | tr -dc '0-9')
+        end=$(date +%s)
+        runtime=$((end-start))
 
-	if (( runtime < curr_runtime )) || (( size_tmp > file_size ));
-	then
-		if (( size_tmp > 0 ));
-		then
+        if (( runtime < curr_runtime )) || (( size_tmp > file_size ));
+        then
+                if (( size_tmp > 0 ));
+                then
 
-			file_size=$size_tmp
-			curr_runtime=$runtime
-			chosen_mp4=$2
-			chosen_referer=$1
-		fi
-	fi
+                        file_size=$size_tmp
+                        curr_runtime=$runtime
+                        chosen_mp4=$2
+                        chosen_referer=$1
+                fi
+        fi
 }
 
 get_video_link () {
-	if [[ "$1" == *".mp4" ]] || [[ "$1" == *".m3u"* ]]
-	then
-		mp4="$1"
-		echo $mp4
-		return
-	fi
+        if [[ "$1" == *".mp4" ]] || [[ "$1" == *".m3u"* ]]
+        then
+                mp4="$1"
+                echo $mp4
+                return
+        fi
 
-	
-	if [[ $1 == *"vidmoly"* ]]
-	then
-		parsevidmoly
-	fi
 
-	if [[ $1 == *"dood"* ]]
-	then
-		parsedood
-	fi
+        if [[ $1 == *"vidmoly"* ]]
+        then
+                parsevidmoly
+        fi
 
-	if [ -z "$mp4" ] 
-	then
-		ref_html="$(curl --max-time 5 --connect-timeout 5 -L -A "$user_agent" -s "$1" | tr -d "\0")"	
-		if [ ! -z "$ref_html" ]
-		then
-			mp4=$(echo $ref_html | grep -oE 'http[^ ]+(m3u[8]?|mp4)' | head -n 1)
-			
-		fi
+        if [[ $1 =~ d[a-zA-Z0-9]+d ]]
+        then
+                parsedood
+        fi
 
-		#Use referrer as last resort
-		mp4=${mp4:="$1"}
-	fi
-	
-	echo $1
-	if ! [[ $1 == $mp4 ]]
-	then
-		echo $mp4
-	fi
+        if [ -z "$mp4" ]
+        then
+                ref_html="$(curl --max-time 5 --connect-timeout 5 -L -A "$user_agent" -s "$1" | tr -d "\0")"
+                if [ ! -z "$ref_html" ]
+                then
+                        mp4=$(echo $ref_html | grep -oE 'http[^ ]+(m3u[8]?|mp4)' | head -n 1)
+                fi
+
+                #Use referrer as last resort
+                mp4=${mp4:="$1"}
+        fi
+
+        echo $1
+        if ! [[ $1 == $mp4 ]]
+        then
+                echo $mp4
+        fi
 }
 
 parse_embed_referer () {
-	mp4=""
-	server="$1?server=$2"
-	referer="$(curl -L -A "$user_agent" -s $server | grep -o -E '*<p><iframe.*' | tr -d '"' | grep -o -P 'src=\K[^ ]*' | xargs echo -n)"		
-	referer=${referer:="$(curl -L -A "$user_agent" -s $server | grep -oE '*<source src.*' | tr -d '"' | grep -oP 'src=\K[^ ]*' | xargs echo -n)"}
+        mp4=""
+        server="$1?server=$2"
+        referer="$(curl -L -A "$user_agent" -s $server | grep -o -E '*<p><iframe.*' | tr -d '"' | grep -o -P 'src=\K[^ ]*' | xargs echo -n)"
+        referer=${referer:="$(curl -L -A "$user_agent" -s $server | grep -oE '*<source src.*' | tr -d '"' | grep -oP 'src=\K[^ ]*' | xargs echo -n)"}
 
-	if [ -z "$referer" ]
-	then
-		return 1
-	fi
-	
-	check_http $referer			
-	if [[ $query == *"http"* ]]
-	then
-		result_title=$(curl -L -A "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="d-flex player-controller">[[:space:]]*<h4>([^"]*)</h4>' | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
-		fix_title
-	fi
+        if [ -z "$referer" ]
+        then
+                return 1
+        fi
 
-	get_video_link $referer
+        check_http $referer
+        if [[ $query == *"http"* ]]
+        then
+                result_title=$(curl -L -A "$user_agent" -s $server | tr -d "\n" | grep -o -E '<div class="d-flex player-controller">[[:space:]]*<h4>([^"]*)</h4>' | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
+                fix_title
+        fi
+
+        get_video_link $referer
 }
 
 iterate_servers () {
-	result_title=$(curl -L -A "$user_agent" -s $1 | tr -d "\n" | grep -o -E '<div class="d-flex player-controller".*>[[:space:]]*<h4 class="my-auto">([^"]*)</h4>' | grep -o -P '<h4 class="my-auto">\K[^"]*' | sed 's/<\/h4>//g' | sed "s/<i class='mdi mdi-circle-small'><\/i>/ /g")
-	fix_title
-	
-	if [[ $media_type == "series" ]]
-	then
-		season_nr=$(echo "$episode_label" | grep -o -P 'SEZONI \K[^ ]*')
-		episode_nr=$(echo "$episode_label" | grep -o -P 'EPISODI \K[^"]*')
+        result_title=$(curl -L -A "$user_agent" -s $1 | tr -d "\n" | grep -o -E '<div class="d-flex player-controller".*>[[:space:]]*<h4 class="my-auto">([^"]*)</h4>' | grep -o -P '<h4 class="my-auto">\K[^"]*' | sed 's/<\/h4>//g' | sed "s/<i class='mdi mdi-circle-small'><\/i>/ /g")
+        fix_title
 
-		if [ -z $season_nr ] || [ -z episode_nr ]
-		then
-			download_path="$root_path/$result_title/$result_title - $episode_label.mp4"
-		else
-			download_path="$root_path/$result_title/$result_title - S${season_nr}E${episode_nr}.mp4"
-		fi
-		
-		if [ -f "$download_path" ]
-		then
-			echo "$Green Episode is Downloaded. $White"
-			return 1
-		fi
-		
-	else	
-		download_path="$root_path/$result_title.mp4"
-		if [ -f "$download_path" ]
-		then
-			echo "$Green Movie is Downloaded. $White"
-			return 1
-		fi
-	fi	
+        if [[ $media_type == "series" ]]
+        then
+                season_nr=$(echo "$episode_label" | grep -o -P 'SEZONI \K[^ ]*')
+                episode_nr=$(echo "$episode_label" | grep -o -P 'EPISODI \K[^"]*')
+
+                if [ -z $season_nr ] || [ -z episode_nr ]
+                then
+                        download_path="$root_path/$result_title/$result_title - $episode_label.mp4"
+                else
+                        download_path="$root_path/$result_title/$result_title - S${season_nr}E${episode_nr}.mp4"
+                fi
+
+                if [ -f "$download_path" ]
+                then
+                        echo "$Green Episode is Downloaded. $White"
+                        return 1
+                fi
+
+        else
+                download_path="$root_path/$result_title.mp4"
+                if [ -f "$download_path" ]
+                then
+                        echo "$Green Movie is Downloaded. $White"
+                        return 1
+                fi
+        fi
 
 
-	nr_of_servers=$(curl -L -A "$user_agent" -s $1 | grep -o -E '<a type="button".*href=".*server.*"' | wc -l | tr -dc '0-9')
-	for ((i = 1 ; i <= $nr_of_servers ; i++))
-	do
-		parse_embed_referer $1 $i
-		if [ $? -eq 1 ]
-		then
-			continue
-		fi
+        nr_of_servers=$(curl -L -A "$user_agent" -s $1 | grep -o -E '<a type="button".*href=".*server.*"' | wc -l | tr -dc '0-9')
+        for ((i = 1 ; i <= $nr_of_servers ; i++))
+        do
+                parse_embed_referer $1 $i
+                if [ $? -eq 1 ]
+                then
+                        continue
+                fi
 
-		if [[ $mp4 == *"m3u"* ]]
-		then
-			download $referer $mp4
-			break
-		else
-			pick_mp4 $referer $mp4
-		fi
-	done
-	
-	if [[ -f "$download_path" ]]
-	then
-		return 1
-	else
-		download $chosen_referer $chosen_mp4
-	fi
+                if [[ $mp4 == *"m3u"* ]]
+                then
+                        download $referer $mp4
+                        break
+                else
+                        pick_mp4 $referer $mp4
+                fi
+        done
+
+        if [[ -f "$download_path" ]]
+        then
+                return 1
+        else
+                download $chosen_referer $chosen_mp4
+        fi
 }
 
 server_choice(){
-	server_choice=1
-	parse_embed_referer "$1" $server_choice
-	download $referer $mp4
-	if [ $season -eq 0 ]
-	then
-		season=1
-	fi
-	while true
-	do	
-		clear
-		nr_of_servers=$(curl -L -A "$user_agent" -s $1 | grep -o -E '<a type="button".*href=".*server.*"' | wc -l | tr -dc '0-9')
-		if [[ "$media_type" == "series" ]]
-		then
-			echo "$Green-Playing $result_title S$season-E$episode $White"
-		else
-			echo "$Green-Playing $result_title"
-		fi
-		echo "$Blue-Current Server: $server_choice $White"
-		if [ -z "$mp4" ]
-		then
-			echo "$Red-No Video File was found in this Server. Try another one! $White"
-		fi
-		printf "Write Server Number [1-$nr_of_servers] or Quit by writing anything else: "
-		exec 0<&1
-		read server_choice	
-		if ! [ $server_choice -eq $server_choice 2>/dev/null ]
-		then
-			exit
-		fi
-		if [[ $server_choice -lt 1 ]] || [[ $server_choice -gt $nr_of_servers ]]
-		then				
-			exit
-		fi
+        server_choice=1
+        parse_embed_referer "$1" $server_choice
+        download $referer $mp4
+        if [ $season -eq 0 ]
+        then
+                season=1
+        fi
+        while true
+        do
+                clear
+                nr_of_servers=$(curl -L -A "$user_agent" -s $1 | grep -o -E '<a type="button".*href=".*server.*"' | wc -l | tr -dc '0-9')
+                if [[ "$media_type" == "series" ]]
+                then
+                        echo "$Green-Playing $result_title S$season-E$episode $White"
+                else
+                        echo "$Green-Playing $result_title"
+                fi
+                echo "$Blue-Current Server: $server_choice $White"
+                if [ -z "$mp4" ]
+                then
+                        echo "$Red-No Video File was found in this Server. Try another one! $White"
+                fi
+                printf "Write Server Number [1-$nr_of_servers] or Quit by writing anything else: "
+                exec 0<&1
+                read server_choice
+                if ! [ $server_choice -eq $server_choice 2>/dev/null ]
+                then
+                        exit
+                fi
+                if [[ $server_choice -lt 1 ]] || [[ $server_choice -gt $nr_of_servers ]]
+                then
+                        exit
+                fi
 
-		parse_embed_referer "$1" $server_choice
-		download $referer $mp4
-	done
+                parse_embed_referer "$1" $server_choice
+                download $referer $mp4
+        done
 }
 
 parse_seasons () {
-	episode_list=$(curl -L -A "$user_agent" -s "$1" | tr -d '\n' | grep -o -E '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"' | tac)
-		
-	if [ -z "$episode_list" ]
-	then
-		echo "$Red Series $query not found! :( $White"
-		return
-	fi
-	#If user input was an url, result_title was never initiated
-	if [ -z "$result_title" ]
-	then
-		result_title=$(curl -L -A "$user_agent" -s "$1" | tr -d "\n" | grep -o -E '<h3 class="category-head">([^"]*)</h3>' | grep -o -P '>\K[^"]*' | sed 's/<\/h3>//g')
-		fix_title
-	fi
-	
-	if [ $watch -eq 0 ]
-	then
-		echo "Creating Series Folder"
-		mkdir -p "$root_path/$result_title"
-	fi
+        episode_list=$(curl -L -A "$user_agent" -s "$1" | tr -d '\n' | grep -o -E '<div class="under-thumb">[[:space:]]*<a href="([^"]*)" title="([^"]*)"' | tac)
 
-	if [ -z "$episode_list" ]
-	then
-		echo "$Red Season not Found! :( $White"
-		return
-	fi
+        if [ -z "$episode_list" ]
+        then
+                echo "$Red Series $query not found! :( $White"
+                return
+        fi
+        #If user input was an url, result_title was never initiated
+        if [ -z "$result_title" ]
+        then
+                result_title=$(curl -L -A "$user_agent" -s "$1" | tr -d "\n" | grep -o -E '<h3 class="category-head">([^"]*)</h3>' | grep -o -P '>\K[^"]*' | sed 's/<\/h3>//g')
+                fix_title
+        fi
 
-	if [ $season -gt 0 ]
-	then
-		episode_list=$(echo "$episode_list" | grep -o -E ".*SEZONI $season.*")
-	fi
+        if [ $watch -eq 0 ]
+        then
+                echo "Creating Series Folder"
+                mkdir -p "$root_path/$result_title"
+        fi
 
-	
-	if [ $watch -eq 1 ]
-	then
-		if [ $episode -gt 1 ]
-		then
-			chosen_ep=$(echo "$episode_list" | head -n $episode | tail -1)	
-		else
-			chosen_ep=$(echo "$episode_list" | head -n 1)
-			episode=1
-		fi
-		episode_url=$(echo "$chosen_ep" | grep -oE 'https.*/"' | tr -d "\"")
-		server_choice $episode_url
-		exit
-	fi	
-		
-	if [ $episode -gt 0 ]
-	then
-		episode_list=$(echo "$episode_list" | head -n $episode | tail -1)	
-	fi
+        if [ -z "$episode_list" ]
+        then
+                echo "$Red Season not Found! :( $White"
+                return
+        fi
 
-	echo "$episode_list" | while IFS= read -r line ; do
-		episode_label=$(echo "$line" | grep -o -P 'title=\K[^<].*' | sed "s/<i class='mdi mdi-circle-medium'><\/i>/ /g;s/\"//g")
-		episode_url=$(echo "$line" | grep -o -E 'https.*/"' | tr -d "\"")
+        if [ $season -gt 0 ]
+        then
+                episode_list=$(echo "$episode_list" | grep -o -E ".*SEZONI $season.*")
+        fi
 
-		echo "Downloading $episode_label"
-		iterate_servers "$episode_url"
-	done
+
+        if [ $watch -eq 1 ]
+        then
+                if [ $episode -gt 1 ]
+                then
+                        chosen_ep=$(echo "$episode_list" | head -n $episode | tail -1)
+                else
+                        chosen_ep=$(echo "$episode_list" | head -n 1)
+                        episode=1
+                fi
+                episode_url=$(echo "$chosen_ep" | grep -oE 'https.*/"' | tr -d "\"")
+                server_choice $episode_url
+                exit
+        fi
+
+        if [ $episode -gt 0 ]
+        then
+                episode_list=$(echo "$episode_list" | head -n $episode | tail -1)
+        fi
+
+        echo "$episode_list" | while IFS= read -r line ; do
+                episode_label=$(echo "$line" | grep -o -P 'title=\K[^<].*' | sed "s/<i class='mdi mdi-circle-medium'><\/i>/ /g;s/\"//g")
+                episode_url=$(echo "$line" | grep -o -E 'https.*/"' | tr -d "\"")
+
+                echo "Downloading $episode_label"
+                echo "$episode_url"
+                iterate_servers "$episode_url"
+        done
 }
 
 fix_title(){
-	result_title=$(echo $result_title | sed 's/://g; s/ *$//; s/&nbsp;/ /g; s/&amp;/\&/g; s/&lt;/\</g; s/&gt;/\>/g; s/&quot;/\"/g; s/#&#39;/\'"'"'/g; s/&ldquo;/\"/g; s/&#8211;/\-/g; s/&rdquo;/\"/g; s/&#8217;/\'"'"'/g;')
+        result_title=$(echo $result_title | sed 's/://g; s/ *$//; s/&nbsp;/ /g; s/&amp;/\&/g; s/&lt;/\</g; s/&gt;/\>/g; s/&quot;/\"/g; s/#&#39;/\'"'"'/g; s/&ldquo;/\"/g; s/&#8211;/\-/g; s/&rdquo;/\"/g; s/&#8217;/\'"'"'/g;')
 }
 
 
 search () {
-	query=$(echo "$query" | sed -e 's/ /%20/g')
-	
-	if [[ "$media_type" == "movie" ]]
-	then
-		url_title=$(curl -L -A "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E '<div class="under-thumb">[[:space:]].<a href="([^"]*)" title="([^"]*)" class="post-title"')
-		titles=$(echo "$url_title" | grep -o -P 'title="\K[^"]*' | awk '{print NR". "$0}')
-	else
-		url_title=$(curl -L -A "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E '<div class="under-thumb">[[:space:]].<a href="([^"]*)">.[[:space:]].<h4>([^"]*)</h4>')
-		titles=$(echo "$url_title" | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
-	fi
+        query=$(echo "$query" | sed -e 's/ /%20/g')
 
-	if [ -z "$url_title" ]
-	then
-		echo "$Red Media $title was not found! :( $White"
-		return
-	fi
+        if [[ "$media_type" == "movie" ]]
+        then
+                url_title=$(curl -L -A "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E '<div class="under-thumb">[[:space:]].<a href="([^"]*)" title="([^"]*)" class="post-title"')     
+                titles=$(echo "$url_title" | grep -o -P 'title="\K[^"]*' | awk '{print NR". "$0}')
+        else
+                url_title=$(curl -L -A "$user_agent" -s "$base_url/search/$query" | tr -d '\n' | grep -o -E '<div class="under-thumb">[[:space:]].<a href="([^"]*)">.[[:space:]].<h4>([^"]*)</h4>')
+                titles=$(echo "$url_title" | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
+        fi
 
-	if [ $interactive -eq 1 ]
-	then
-		result_nr=$(echo "$titles" | awk 'END{print NR}')
-		
-		if [ $result_nr -eq 1 ]
-		then
-			echo "Only one result found. [$titles]"
-			echo "Continuing..."
-			parse_title "$url_title"
-		else			
-			echo "$titles" | while IFS= read -r line ; do				
-				echo "$LYellow$line"
-				read line
-				echo "$LCyan$line"
-			done
-			printf "$White Write a number between [1-$result_nr]: "
-			read choice
-			if ! [ $choice -eq $choice 2>/dev/null ]
-			then
-				choice=0
-			fi
-			while [ $choice -lt 1 ] || [ $choice -gt $result_nr ]
-			do				
+        if [ -z "$url_title" ]
+        then
+                echo "$Red Media $title was not found! :( $White"
+                return
+        fi
 
-				printf "Wrong Input. Try Again: "
-				read choice	
-				if ! [ $choice -eq $choice 2>/dev/null ]
-				then
-					choice=0
-				fi
-			done
-			url_title=$(echo "$url_title" | head -n $choice | tail -n 1)
-			parse_title "$url_title"
-		fi
-			
-	else
-		echo "$url_title" | while IFS= read -r line ; do
-			parse_title "$line"
-			if [ $? -eq 1 ]
-			then
-				break
-			fi
-		done
-	fi
+        if [ $interactive -eq 1 ]
+        then
+                result_nr=$(echo "$titles" | awk 'END{print NR}')
+
+                if [ $result_nr -eq 1 ]
+                then
+                        echo "Only one result found. [$titles]"
+                        echo "Continuing..."
+                        parse_title "$url_title"
+                else
+                        echo "$titles" | while IFS= read -r line ; do
+                                echo "$LYellow$line"
+                                read line
+                                echo "$LCyan$line"
+                        done
+                        printf "$White Write a number between [1-$result_nr]: "
+                        read choice
+                        if ! [ $choice -eq $choice 2>/dev/null ]
+                        then
+                                choice=0
+                        fi
+                        while [ $choice -lt 1 ] || [ $choice -gt $result_nr ]
+                        do
+
+                                printf "Wrong Input. Try Again: "
+                                read choice
+                                if ! [ $choice -eq $choice 2>/dev/null ]
+                                then
+                                        choice=0
+                                fi
+                        done
+                        url_title=$(echo "$url_title" | head -n $choice | tail -n 1)
+                        parse_title "$url_title"
+                fi
+
+        else
+                echo "$url_title" | while IFS= read -r line ; do
+                        parse_title "$line"
+                        if [ $? -eq 1 ]
+                        then
+                                break
+                        fi
+                done
+        fi
 
 }
 
 parse_title(){
-	#Extracts text that is inside the title tag.
-	#Sed removes the space left out in the end
-	if [[ "$media_type" == "movie" ]]
-	then
-		result_title=$(echo "$1" | grep -o -P 'title="\K[^"]*')
-		result_url=$(echo "$1" | grep -oE 'https.*/"' | tr -d "\"")
-	else
-		result_title=$(echo "$1" | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
-		result_url=$(echo "$1" | grep -oE 'https.*/">' | tr -d "\">")
-	fi
-	fix_title
+        #Extracts text that is inside the title tag.
+        #Sed removes the space left out in the end
+        if [[ "$media_type" == "movie" ]]
+        then
+                result_title=$(echo "$1" | grep -o -P 'title="\K[^"]*')
+                result_url=$(echo "$1" | grep -oE 'https.*/"' | tr -d "\"")
+        else
+                result_title=$(echo "$1" | grep -o -P '<h4>\K[^"]*' | sed 's/<\/h4>//g')
+                result_url=$(echo "$1" | grep -oE 'https.*/">' | tr -d "\">")
+        fi
+        fix_title
 
-	if [[ $result_url == *"serial"* ]] && [[ $media_type == "movie" ]]
-	then
-		return
-	elif [[ ! $result_url == *"serial"* ]] && [[ $media_type == "series" ]]
-	then
-		return
-	fi
+        if [[ $result_url == *"serial"* ]] && [[ $media_type == "movie" ]]
+        then
+                return
+        elif [[ ! $result_url == *"serial"* ]] && [[ $media_type == "series" ]]
+        then
+                return
+        fi
 
-	if [[ $result_title == *"$input_text"* ]]
-	then	
-		echo "Downloading $result_title ..."
-		echo $result_url
-		if [[ $media_type == "movie" ]]
-		then
-			if [ $watch -eq 1 ]
-			then
-				server_choice $result_url
-				return 1
-			else
-				iterate_servers $result_url
-				return 1
-			fi
-		else
-			parse_seasons $result_url
-			return 1
-		fi
-	fi
+        if [[ $result_title == *"$input_text"* ]]
+        then
+                echo "Downloading $result_title ..."
+                echo $result_url
+                if [[ $media_type == "movie" ]]
+                then
+                        if [ $watch -eq 1 ]
+                        then
+                                server_choice $result_url
+                                return 1
+                        else
+                                iterate_servers $result_url
+                                return 1
+                        fi
+                else
+                        parse_seasons $result_url
+                        return 1
+                fi
+        fi
 }
 
 
 while getopts 'm:t:huwis:e:o:' OPT; do
-	case $OPT in
-		h)
-			help_text
-			exit 0
-			;;
-		m)
-			media_type="movie"
-			if ! [[ $OPTARG == *.txt ]] && [[ "$*" == "-*" ]]
-			then
-				query="$(echo "$*" | grep -oE '*m.*' | sed 's/\.*m //g;s/ -.*//g')"
-			else
-				query="$OPTARG"
-			fi
-			;;
-		t)
-			
-			media_type="series"
-			if ! [[ $OPTARG == *.txt ]] && [[ "$*" == "-*" ]]
-			then	
-				query="$(echo "$*" | grep -oE '*t.*' | sed 's/\.*t //g;s/ -.*//g')"
-			else
-				query="$OPTARG"
-			fi
-			;;
-		s)
-			season=$OPTARG
-			;;
-		o)
-			root_path=$OPTARG
-			if ! [ -d "$root_path" ]
-			then
-				echo "$Red Given Directory does not exist!"
-				exit 1
-			fi
-			;;
-		i)
-			interactive=1
-			;;
-		w)
-			watch=1
-			;;
-		e)
-			episode=$OPTARG
-			;;
-		u)
-			update_script
-			;;
-		*)
-			help_text
-			exit 1
-			;;
-	esac
+        case $OPT in
+                h)
+                        help_text
+                        exit 0
+                        ;;
+                m)
+                        media_type="movie"
+                        if ! [[ $OPTARG == *.txt ]] && [[ "$*" == "-*" ]]
+                        then
+                                query="$(echo "$*" | grep -oE '*m.*' | sed 's/\.*m //g;s/ -.*//g')"
+                        else
+                                query="$OPTARG"
+                        fi
+                        ;;
+                t)
+
+                        media_type="series"
+                        if ! [[ $OPTARG == *.txt ]] && [[ "$*" == "-*" ]]
+                        then
+                                query="$(echo "$*" | grep -oE '*t.*' | sed 's/\.*t //g;s/ -.*//g')"
+                        else
+                                query="$OPTARG"
+                        fi
+                        ;;
+                s)
+                        season=$OPTARG
+                        ;;
+                o)
+                        root_path=$OPTARG
+                        if ! [ -d "$root_path" ]
+                        then
+                                echo "$Red Given Directory does not exist!"
+                                exit 1
+                        fi
+                        ;;
+                i)
+                        interactive=1
+                        ;;
+                w)
+                        watch=1
+                        ;;
+                e)
+                        episode=$OPTARG
+                        ;;
+                u)
+                        update_script
+                        ;;
+                *)
+                        help_text
+                        exit 1
+                        ;;
+        esac
 done
 
 if [ $# -eq 0 ]
 then
-	help_text
-	exit 0
+        help_text
+        exit 0
 fi
 
-base_url=$(curl -A $user_agent -s --connect-timeout 5 --head -L https://www.filma24.bz | grep -oP "location: \K.*")
+base_url=$(curl -A $user_agent -s --connect-timeout 5 --head -L https://www.filma24.tv | grep -oP "location: \K.*")
 if [ -z "$base_url" ]
 then
-	echo "Couldn't reach site!"
-	exit 1
+        echo "Couldn't reach site!"
+        exit 1
 fi
 
 base_url=${base_url:0:-1}
 
 if [ -z "$media_type" ]
 then
-	echo "$Red You need to provide the media type! $newline"
-	exit 1
+        echo "$Red You need to provide the media type! $newline"
+        exit 1
 fi
 
 if [ -z "$query" ]
 then
-	echo "$Red You need to provide a query! $newline"
-	exit 1
+        echo "$Red You need to provide a query! $newline"
+        exit 1
 fi
 
 init_start(){
-	if [[ $query == *"http"* ]]
-	then
-		if [ "$media_type" = "movie" ]
-		then
-			if [ $watch -eq 1 ]
-			then
+        if [[ $query == *"http"* ]]
+        then
+                if [ "$media_type" = "movie" ]
+                then
+                        if [ $watch -eq 1 ]
+                        then
 
-				result_title=$(curl -L -A "$user_agent" -s $query | tr -d "\n" | grep -o -E '<div class="d-flex player-controller".*>[[:space:]]*<h4 class="my-auto">([^"]*)</h4>' | grep -o -P '<h4 class="my-auto">\K[^"]*' | sed 's/<\/h4>//g')
-				fix_title
-				server_choice $query
-			else
-				iterate_servers $query
-			fi
-		else
-			parse_seasons $query
-		fi
-	else
-		search
-	fi
+                                result_title=$(curl -L -A "$user_agent" -s $query | tr -d "\n" | grep -o -E '<div class="d-flex player-controller".*>[[:space:]]*<h4 class="my-auto">([^"]*)</h4>' | grep -o -P '<h4 class="my-auto">\K[^"]*' | sed 's/<\/h4>//g')
+                                fix_title
+                                server_choice $query
+                        else
+                                iterate_servers $query
+                        fi
+                else
+                        parse_seasons $query
+                fi
+        else
+                search
+        fi
 }
 
 if [[ $query == *.txt ]]
 then
-	echo $query
-	txt_file=$query
-	if ! [ -f "$query" ]
-	then
-		echo "$Red Txt file could not be found!"
-		exit 1
-	fi
+        echo $query
+        txt_file=$query
+        if ! [ -f "$query" ]
+        then
+                echo "$Red Txt file could not be found!"
+                exit 1
+        fi
 
-	while IFS= read -r line
-	do
-		query="$line"
-		echo "Searching for $query ..."
-		init_start
-	done < "$txt_file"
+        while IFS= read -r line
+        do
+                query="$line"
+                echo "Searching for $query ..."
+                init_start
+        done < "$txt_file"
 else
-	init_start
+        init_start
 fi
-
