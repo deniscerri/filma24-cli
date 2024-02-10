@@ -74,6 +74,7 @@ parsevidmoly(){
 	
 	if [ -z "$videoHash" ]
 	then
+		mp4=$(yt-dlp --print "%(url)s" "$fixedURL")
 		return
 	fi	
 
@@ -116,12 +117,13 @@ download () {
 
 
 	echo "Starting Download from Host $1..."
-	if [[ $2 == *"m3u"* ]]
-	then
-		ffmpeg -http_persistent 0 -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
-	else
-		ffmpeg -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
-	fi
+	yt-dlp --referer "$1" "$2" -o "$download_path" || true
+	# if [[ $2 == *"m3u"* ]]
+	# then
+	# 	ffmpeg -http_persistent 0 -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+	# else
+	# 	ffmpeg -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
+	# fi
 	
 	chosen_mp4=''
 	chosen_referer=''
@@ -180,7 +182,7 @@ get_video_link () {
 		parsevidmoly
 	fi
 
-	if [[ $1 == *"dood"* ]]
+	if [[ $1 =~ d[a-zA-Z0-9]+d ]]
 	then
 		parsedood
 	fi
@@ -191,7 +193,6 @@ get_video_link () {
 		if [ ! -z "$ref_html" ]
 		then
 			mp4=$(echo $ref_html | grep -oE 'http[^ ]+(m3u[8]?|mp4)' | head -n 1)
-			
 		fi
 
 		#Use referrer as last resort
@@ -381,6 +382,7 @@ parse_seasons () {
 		episode_url=$(echo "$line" | grep -o -E 'https.*/"' | tr -d "\"")
 
 		echo "Downloading $episode_label"
+		echo "$episode_url"
 		iterate_servers "$episode_url"
 	done
 }
@@ -559,7 +561,7 @@ then
 	exit 0
 fi
 
-base_url=$(curl -A $user_agent -s --connect-timeout 5 --head -L https://www.filma24.bz | grep -oP "location: \K.*")
+base_url=$(curl -A $user_agent -s --connect-timeout 5 --head -L https://www.filma24.tv | grep -oP "location: \K.*")
 if [ -z "$base_url" ]
 then
 	echo "Couldn't reach site!"
