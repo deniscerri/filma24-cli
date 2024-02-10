@@ -17,6 +17,7 @@
 - ffmpeg
 - curl
 - vlc
+- yt-dlp
 
 ## Installation: <a name="Installation"></a>
 
