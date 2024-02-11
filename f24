@@ -123,7 +123,7 @@ download () {
 	# 	ffmpeg -http_persistent 0 -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
 	# else
 	# 	ffmpeg -nostdin -hide_banner -loglevel error -stats -headers "Referer: $1" -i "$2" -c copy "$download_path" || true
-	# fi
+	#fi
 	
 	chosen_mp4=''
 	chosen_referer=''
@@ -193,6 +193,7 @@ get_video_link () {
 		if [ ! -z "$ref_html" ]
 		then
 			mp4=$(echo $ref_html | grep -oE 'http[^ ]+(m3u[8]?|mp4)' | head -n 1)
+			
 		fi
 
 		#Use referrer as last resort
